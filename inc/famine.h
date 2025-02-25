@@ -12,7 +12,8 @@ extern void size_to_decrypt();
 extern void jmp_rel();
 extern void data_page_size();
 extern void sign();
-extern uint8_t sign_key;
+//extern void sign_key();
+extern uint32_t sign_key;
 
 
 #endif

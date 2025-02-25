@@ -36,9 +36,13 @@ int	bss(t_data *data, size_t payload_size) {
 			phdr[i].p_filesz += payload_size;
 			phdr[i].p_memsz += payload_size;
 
-			data->data_page_size = phdr[i].p_memsz - bss_len;
+			data->data_page_size = phdr[i].p_memsz;
+			/*check if rodata segment is present*/
+			if (phdr[i - 1].p_type == PT_LOAD && phdr[i - 1].p_flags == (PF_R)) {
+				data->data_page_size += phdr[i - 1].p_memsz;
+			}
 
-			phdr[i].p_flags |= PF_X;
+			//phdr[i].p_flags |= PF_X;
 
 			break;
 

