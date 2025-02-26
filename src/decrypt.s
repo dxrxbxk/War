@@ -3,13 +3,7 @@ default rel
 
 global packer_start
 global packer_end
-global size_to_decrypt
-global offset_to_data
-global key
 global jmp_rel
-global data_page_size
-global sign
-global sign_key
 
 %define PROT_READ   0x1
 %define PROT_WRITE  0x2
@@ -23,7 +17,7 @@ packer_start:
 	push rdx
 
 	cmp byte [rel key], 0
-	je .print_nokey
+	je .mprotect_data
 
 	lea rsi, [rel packer_start]
 	add rsi, [rel offset_to_data]
@@ -35,7 +29,7 @@ packer_start:
 
 .loop:
 	cmp rcx, 0
-	je .print
+	je .mprotect_data
 
 	mov al, byte [rdi + rbx]
 	xor byte [rsi], al
@@ -48,53 +42,16 @@ packer_start:
 
 	jmp .loop
 
-.string:
-	db "....WOODY....", 0x0a, 0x0
-
-.stringnokey:
-	db "no key", 0x0a, 0x0
-
-.print:
-	mov rax, 1
-	mov rdi, 1
-	lea rsi, [rel .string]
-	mov rdx, 15
-
-	syscall
-
-	jmp .mprotect_data
-
-.print_nokey:
-	mov rax, 1
-	mov rdi, 1
-	lea rsi, [rel .stringnokey]
-	mov rdx, 8
-
-	syscall
-
 .mprotect_data:
-;; get addr of packer_start
 	lea rdi, [rel packer_start]
 	add rdi, [rel offset_to_data]
 	and rdi, ~(PAGE_SIZE - 1)
 
 	mov rax, 10
 	mov rsi, [rel data_page_size]
-	;and rsi, ~0xfff ;remove this shit
 	mov rdx, PROT_READ | PROT_WRITE | PROT_EXEC
 
-
 	syscall
-
-;.mproctect_text:
-;	lea rdi, [rel packer_start]
-;	and rdi, ~0xfff
-;
-;	mov rax, 10
-;	mov rsi, 0x1000
-;	mov rdx, PROT_READ | PROT_EXEC | PROT_WRITE
-;
-;	syscall
 
 .exit:
 	pop rdx

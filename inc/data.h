@@ -4,9 +4,7 @@
 # include <elf.h>
 # include <sys/types.h>
 # include <stdbool.h>
-
-# define SIGN_NUM_OFF 28
-# define SIGN_SIZE 8
+# include <limits.h>
 
 typedef struct s_elf {
 	Elf64_Ehdr	*ehdr;
@@ -37,10 +35,9 @@ typedef struct s_packer {
 	int32_t		rel_jmp;
 } t_packer;
 
-//#define SIGNATURE_SIZE 38
 #define SIGNATURE_SIZE 43
-//#define SIGNATURE_TEXT "Famine (c)oded by dxrxbxk - 00000000\n"
-//#define SIGNATURE_SIZE (sizeof(SIGNATURE_TEXT)) + 1
+#define PAYLOAD 0x0
+#define PACKER 0x1
 
 typedef struct __attribute__((packed)) patch {
 	int32_t		jmp;
@@ -58,21 +55,20 @@ typedef struct s_data {
 	uint8_t		*file;
 	size_t		size;
 
-	Elf64_Off	data_offset;
-	size_t		data_page_size;
+	//Elf64_Off	data_offset;
+	//size_t		data_page_size;
 
 	t_elf		elf;
 	t_cave		cave;
 	t_packer	packer;
+	t_patch		patch;
 
-	int64_t		key;
-	char		*signature;
-	char		target_name[1024];
-	char		self_name[1024];
+	//int64_t		key;
+	//char		*signature;
+	char		target_name[PATH_MAX];
+	char		self_name[PATH_MAX];
 } t_data;
 
-//int	init_data(t_data *data, uint8_t *file, size_t size);
-//int	init_data(t_data *data);
 void	free_data(t_data *data);
 void	updade_hdr(t_data *data);
 

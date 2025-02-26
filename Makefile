@@ -6,7 +6,8 @@ src = src/famine.c \
       src/bss.c \
       src/utils.c \
 	  src/text.c \
-	  src/pestilence.c 
+	  src/pestilence.c \
+	  src/war.c 
 
 asm = src/syscall.s \
 	  src/decrypt.s \

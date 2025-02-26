@@ -84,7 +84,7 @@ int map_file(const char *filename, t_data *data) {
 		return -1;
 	}
 
-	void *ptr = file;
+	uint8_t *ptr = file;
 
 	while (1) {
 		ssize_t ret = _syscall(SYS_read, fd, buf, 4096);
