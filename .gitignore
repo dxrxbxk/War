@@ -4,3 +4,4 @@
 War
 build
 *.json
+tmp/*
