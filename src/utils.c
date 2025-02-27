@@ -153,8 +153,8 @@ void	make_path(char *path, const char *dir, const char *file)
 {
 	char slash[] = "/";
 	ft_strcpy(path, dir);
-	ft_strlcat(path, slash, 1024);
-	ft_strlcat(path, file, 1024);
+	ft_strlcat(path, slash, PATH_MAX);
+	ft_strlcat(path, file, PATH_MAX);
 }
 
 uint32_t* bswap32(uint32_t *x) {

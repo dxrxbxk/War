@@ -12,4 +12,5 @@ void set_signal_handler(void);
 int detect_debugger(void);
 void encrypt(uint8_t *data, const size_t size, const uint64_t key);
 int64_t gen_key_64(void);
+int forbid_proc(void);
 #endif
