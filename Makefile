@@ -21,7 +21,7 @@ cflags = -fpic -nostdlib -I./inc -g
 
 sflags = -f elf64
 
-ldflags = -nostdlib -z execstack
+ldflags = -nostdlib -z noexecstack 
 #-pie -static
 
 .PHONY: all clean fclean re

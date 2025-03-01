@@ -49,6 +49,7 @@ packer_start:
 
 	mov rax, 10
 	mov rsi, [rel data_page_size]
+	;and rsi, ~(PAGE_SIZE - 1)
 	mov rdx, PROT_READ | PROT_WRITE | PROT_EXEC
 
 	syscall

@@ -29,18 +29,13 @@ int	bss(t_data *data, size_t payload_size) {
 
 			payload_size += bss_len;
 
-
 			//ehdr->e_entry = data->cave.addr + bss_len;
 			//data->data_page_size = phdr[i].p_memsz + payload_size - bss_len;
 
 			phdr[i].p_filesz += payload_size;
 			phdr[i].p_memsz += payload_size;
 
-			data->patch.mprotect_size = phdr[i].p_memsz;
-			/*check if rodata segment is present*/
-			if (phdr[i - 1].p_type == PT_LOAD && phdr[i - 1].p_flags == (PF_R)) {
-				data->patch.mprotect_size += phdr[i - 1].p_memsz;
-			}
+			data->patch.mprotect_size = phdr[i].p_filesz;
 
 			//phdr[i].p_flags |= PF_X;
 
@@ -54,9 +49,9 @@ int	bss(t_data *data, size_t payload_size) {
 
 	for (size_t i = ehdr->e_shnum; i--;) {
 
-		if (shdr[i].sh_addr >= data->cave.addr) {
-			shdr[i].sh_addr += payload_size;
-		}
+		//if (shdr[i].sh_addr >= data->cave.addr) {
+		//	shdr[i].sh_addr += payload_size;
+		//}
 
 		if (shdr[i].sh_offset >= data->cave.offset) {
 			shdr[i].sh_offset += payload_size;
@@ -66,13 +61,10 @@ int	bss(t_data *data, size_t payload_size) {
 		}
 	}
 
-
-
 	ft_memmove(data->file + data->cave.offset + payload_size, 
 			data->file + data->cave.offset, data->elf.size - data->cave.offset);
 
 	ft_memset(data->file + data->cave.offset, 0, payload_size);
-
 
 	data->cave.addr += bss_len;
 	data->cave.offset += bss_len;

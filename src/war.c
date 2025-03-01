@@ -19,21 +19,21 @@ void hash_to_printable(uint64_t hash, char *fingerprint) {
 	}
 }
 
-void increment_counter(char *counter) {
-    for (int i = 3; i >= 0; i--) {
-        if (counter[i] == '9') {
-            counter[i] = '0';
-        } else {
-            counter[i] += 1;
-            break;
-        }
-    }
-}
-
 void update_fingerprint(char *fingerprint, t_data *data) {
 	uint64_t hash = fnv1a_64(data->self_name, ft_strlen(data->self_name));
 	hash ^= fnv1a_64(data->target_name, ft_strlen(data->target_name));
 	hash_to_printable(hash, fingerprint);
+}
+
+void increment_counter(char *counter) {
+	for (int i = 3; i >= 0; i--) {
+		if (counter[i] == '9') {
+			counter[i] = '0';
+		} else {
+			counter[i] += 1;
+			break;
+		}
+	}
 }
 
 int self_fingerprint(const char *self_name, size_t increment) {
@@ -86,7 +86,6 @@ int self_fingerprint(const char *self_name, size_t increment) {
 	while (increment--) {
 		increment_counter(counter);
 	}
-	//increment_counter(counter);
 
 	fd = _syscall(SYS_open, self_name, O_CREAT | O_WRONLY | O_TRUNC, st.st_mode);
 	if (fd == -1)
