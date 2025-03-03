@@ -40,7 +40,7 @@ uint64_t get_bss_size(int fd) {
 		return 0;
 	}
 
-	for (size_t i = 0; i < ehdr.e_phnum; i++) {
+	for (size_t i = ehdr.e_phnum; i-- > 0;) {
 		if (_syscall(SYS_pread64, fd, &phdr, sizeof(Elf64_Phdr), ehdr.e_phoff + i * ehdr.e_phentsize) != sizeof(Elf64_Phdr)) {
 			return 0;
 		}
