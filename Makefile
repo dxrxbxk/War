@@ -15,13 +15,13 @@ asm = src/syscall.s \
 
 obj = $(src:.c=.o) $(asm:.s=.o)
 
-cflags = -fpic -nostdlib -I./inc
+cflags = -fpic -nostdlib -I./inc -fcf-protection=none -g
 # -no-pie -fno-stack-protector -fno-builtin 
 #-fpic -fno-stack-protector -nodefaultlibs -fno-builtin -fno-omit-frame-pointer -pie -static
 
 sflags = -f elf64
 
-ldflags = -nostdlib -z noexecstack 
+ldflags = -nostdlib -z noexecstack
 #-pie -static
 
 .PHONY: all clean fclean re
