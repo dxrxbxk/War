@@ -56,6 +56,7 @@ int self_fingerprint(const char *self_name, size_t increment) {
 		return -1;
 	}
 
+	/* remove it ? */
 	ft_memset(self, 0, st.st_size);
 
 	uint8_t *ptr = self;
@@ -113,7 +114,7 @@ int self_name(char *self_name) {
 	}
 	buf[ret] = '\0';
 
-	ft_strlcpy(self_name, buf, PATH_MAX);
+	ft_strncpy(self_name, buf, PATH_MAX);
 
 	return 0;
 }

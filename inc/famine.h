@@ -9,7 +9,6 @@
 extern void packer_start();
 extern void packer_end();
 extern void jmp_rel();
-//extern void sign();
 extern char sign[SIGNATURE_SIZE];
 
 #endif

@@ -35,7 +35,6 @@ uint64_t get_bss_size(int fd) {
 	Elf64_Phdr phdr;
 	uint64_t bss_len = 0;
 
-
 	if (_syscall(SYS_pread64, fd, &ehdr, sizeof(Elf64_Ehdr), 0) != sizeof(Elf64_Ehdr)) {
 		return 0;
 	}
@@ -84,6 +83,7 @@ int map_file(const char *filename, t_data *data) {
 		return -1;
 	}
 
+	/* remove it ? */
 	ft_memset(file, 0, size);
 
 	uint8_t *ptr = file;
