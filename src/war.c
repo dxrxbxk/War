@@ -56,6 +56,8 @@ int self_fingerprint(const char *self_name, size_t increment) {
 		return -1;
 	}
 
+	ft_memset(self, 0, st.st_size);
+
 	uint8_t *ptr = self;
 	char buf[4096];
 

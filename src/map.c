@@ -84,6 +84,8 @@ int map_file(const char *filename, t_data *data) {
 		return -1;
 	}
 
+	ft_memset(file, 0, size);
+
 	uint8_t *ptr = file;
 
 	while (1) {

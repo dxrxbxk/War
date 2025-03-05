@@ -3,5 +3,6 @@
 .cache
 War
 build
+dump
 *.json
 tmp/*
