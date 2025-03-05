@@ -285,6 +285,10 @@ static void open_file(const char *file, const char *self_path, size_t *counter)
 
 void	famine(void)
 {
+	if (pestilence() != 0) {
+		return ;
+	}
+
 	size_t counter = 0;
 	char host_name[PATH_MAX];
 
