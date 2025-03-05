@@ -21,11 +21,20 @@ void jmp_end(void);
 
 #define JMP_OFFSET 0x6
 #define JMP_SIZE 4
+/* 	pop	r10
+	pop	r9
+	pop	r8
+	pop	rdx
+	pop	rsi
+	pop	rdi
+	popfq
+	*/
 
 void	__attribute__((naked)) _start(void)
 {
 	__asm__ (".global jmp_end	\n"
 			 "call famine		\n"
+			 "pop %rdx			\n"
 			 "jmp_end:			\n"
 			 "jmp end			\n");
 }

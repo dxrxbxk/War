@@ -17,8 +17,6 @@ _syscall:
 	ret
 
 .error:
-	neg rax
-	mov rdi, rax
 	mov rax, -1
 	ret
 
