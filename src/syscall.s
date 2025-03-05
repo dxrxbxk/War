@@ -12,7 +12,16 @@ _syscall:
 	mov r9, [rsp + 8]
 	syscall
 
+	cmp rax, 0
+	jl .error
 	ret
+
+.error:
+	neg rax
+	mov rdi, rax
+	mov rax, -1
+	ret
+
 
 ;	mov rdi, -4095
 ;	cmp rdi, rax
