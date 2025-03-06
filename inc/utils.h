@@ -6,6 +6,9 @@
 
 # include "data.h"
 
+/* print */
+void	putnbr(size_t n);
+
 /* len */
 int		ft_strlen(const char *s);
 int		ft_strnlen(const char *s, size_t n);

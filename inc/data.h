@@ -70,6 +70,6 @@ typedef struct s_data {
 } t_data;
 
 void	free_data(t_data *data);
-void	updade_hdr(t_data *data);
+int		updade_hdr(t_data *data);
 
 #endif

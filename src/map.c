@@ -30,27 +30,31 @@ int	check_elf_magic(int fd) {
 	return 0;
 }
 
-uint64_t get_bss_size(int fd) {
+
+int get_bss_size(int fd, uint64_t* bss_len) {
 	Elf64_Ehdr ehdr;
 	Elf64_Phdr phdr;
-	uint64_t bss_len = 0;
 
 	if (_syscall(SYS_pread64, fd, &ehdr, sizeof(Elf64_Ehdr), 0) != sizeof(Elf64_Ehdr)) {
-		return 0;
+		return 1;
 	}
 
 	for (size_t i = ehdr.e_phnum; i--;) {
-		if (_syscall(SYS_pread64, fd, &phdr, sizeof(Elf64_Phdr), ehdr.e_phoff + i * ehdr.e_phentsize) != sizeof(Elf64_Phdr)) {
-			return 0;
+
+		if (_syscall(SYS_pread64, fd, &phdr, sizeof(Elf64_Phdr), ehdr.e_phoff + (i * ehdr.e_phentsize)) != sizeof(Elf64_Phdr)) {
+			return 1;
 		}
 
 		if (phdr.p_type == PT_LOAD && phdr.p_flags == (PF_R | PF_W)) {
-			bss_len = phdr.p_memsz - phdr.p_filesz;
+			*bss_len = phdr.p_memsz - phdr.p_filesz;
 			break;
 		}
 	}
 
-	return bss_len;
+	//putnbr(*bss_len);
+	//_syscall(SYS_write, 1, "\n", 1);
+
+	return 0;
 }
 
 
@@ -75,7 +79,13 @@ int map_file(const char *filename, t_data *data) {
 		return -1;
 	}
 
-	size_t size = st.st_size + data->cave.p_size + get_bss_size(fd);
+	uint64_t bss_len = 0;
+	if (get_bss_size(fd, &bss_len) != 0) {
+		_syscall(SYS_close, fd);
+		return -1;
+	}
+
+	const size_t size = st.st_size + data->cave.p_size + bss_len;
 
 	file = (uint8_t *)_syscall(SYS_mmap, NULL, size, PROT_READ | PROT_WRITE , MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (file == MAP_FAILED) {

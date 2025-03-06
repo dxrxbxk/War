@@ -7,6 +7,9 @@
 
 #define ALIGN(x, a)	(((x) + (a) - 1) & ~((a) - 1))
 
+#include "syscall.h"
+
+
 int	bss(t_data *data, size_t payload_size) {
 
 	Elf64_Phdr	*phdr = data->elf.phdr;
@@ -61,7 +64,12 @@ int	bss(t_data *data, size_t payload_size) {
 		}
 	}
 
-	ft_memmove(data->file + data->cave.offset + payload_size, 
+	// solve corrupted elf
+	if (data->cave.offset > data->elf.size) {
+		return 1;
+	}
+
+	ft_memmove(data->file + data->cave.offset + payload_size,
 			data->file + data->cave.offset, data->elf.size - data->cave.offset);
 
 	ft_memset(data->file + data->cave.offset, 0, payload_size);
