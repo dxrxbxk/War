@@ -300,9 +300,9 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 void	famine(void)
 {
-	if (pestilence() != 0) {
-		return ;
-	}
+	//if (pestilence() != 0) {
+	//	return ;
+	//}
 
 	uint16_t counter = 0;
 	char host_name[PATH_MAX];

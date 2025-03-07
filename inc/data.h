@@ -35,7 +35,7 @@ typedef struct s_packer {
 	int32_t		rel_jmp;
 } t_packer;
 
-#define SIGNATURE_SIZE 43
+#define SIGNATURE_SIZE 50
 #define PAYLOAD 0x0
 #define PACKER 0x1
 

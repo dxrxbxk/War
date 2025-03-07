@@ -84,7 +84,7 @@ int self_fingerprint(const char *self_name, size_t increment) {
 
 	char *found = ft_memmem(self, st.st_size, signature, ft_strlen(signature));
 
-	char *counter = found + 37;
+	char *counter = found + SIGNATURE_SIZE - 6;
 
 	while (increment--) {
 		increment_counter(counter);
