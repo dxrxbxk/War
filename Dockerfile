@@ -1,31 +1,30 @@
 FROM debian:latest
 
-# Install the necessary packages
-
+# Install necessary packages
 RUN apt-get update && apt-get install -y \
-	build-essential \
-	git \
-	vim \
-	gcc \
-	clang \
-	make \
-	gdb \
-	strace \
-	curl \
-	zsh \
-	tmux \
-	&& apt-get clean 
+    git \
+    vim \
+    gcc \
+    make \
+    gdb \
+    strace \
+    curl \
+    zsh \
+    tmux \
+    nasm \
+    wget \
+    && apt-get clean
 
-RUN	mkdir /root/famine
-
-#RUN (curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)
-#
-#RUN chsh -s $(which zsh)
-
+# Create working directory
+RUN mkdir /root/famine
 WORKDIR /root/famine
 
-# Copy the source code to the container
+# Install Oh My Zsh
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && \
+    chsh -s $(which zsh) root
 
+# Copy the source code to the container
 COPY . .
 
-ENTRYPOINT ["/bin/bash"]
+# Set Zsh as default shell
+CMD ["zsh"]
