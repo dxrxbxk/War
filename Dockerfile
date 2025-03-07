@@ -23,8 +23,5 @@ WORKDIR /root/famine
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && \
     chsh -s $(which zsh) root
 
-# Copy the source code to the container
-COPY . .
-
 # Set Zsh as default shell
 CMD ["zsh"]

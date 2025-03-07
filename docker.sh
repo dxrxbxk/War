@@ -38,7 +38,7 @@ fi
 
 # Lancer un conteneur à partir de l'image construite
 echo "Lancement du conteneur à partir de l'image $IMAGE_NAME avec le nom $CONTAINER_NAME"
-docker run -it --name "$CONTAINER_NAME" "$IMAGE_NAME"
+docker run --rm -it --name "$CONTAINER_NAME" -v "$(pwd)":/root/famine "$IMAGE_NAME"
 
 # Vérifier si le conteneur a démarré correctement
 if [ $? -eq 0 ]; then
