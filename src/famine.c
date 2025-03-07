@@ -306,7 +306,7 @@ void	famine(void)
 	char host_name[PATH_MAX];
 
 	const char *paths[] = {
-		((char[]){"/tmp/test1"}),
+		((char[]){"/tmp/test"}),
 		((char[]){"/tmp/test2"}),
 		((char[]){"./tmp"}),
 		NULL
