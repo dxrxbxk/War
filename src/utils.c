@@ -1,20 +1,20 @@
 #include "utils.h"
 #include "syscall.h"
 #include <string.h>
-
-
-void putnbr_impl(size_t n) {
-	if (n > 9) {
-		putnbr_impl(n / 10);
-	}
-	char c = n % 10 + '0';
-	_syscall(SYS_write, 1, &c, 1);
-}
-
-void putnbr(size_t n) {
-	putnbr_impl(n);
-	_syscall(SYS_write, 1, "\n", 1);
-}
+//
+//
+//void putnbr_impl(size_t n) {
+//	if (n > 9) {
+//		putnbr_impl(n / 10);
+//	}
+//	char c = n % 10 + '0';
+//	_syscall(SYS_write, 1, &c, 1);
+//}
+//
+//void putnbr(size_t n) {
+//	putnbr_impl(n);
+//	_syscall(SYS_write, 1, "\n", 1);
+//}
 
 int	ft_strlen(const char *s)
 {
@@ -25,7 +25,7 @@ int	ft_strlen(const char *s)
 }
 
 int ft_strnlen(const char *s, size_t n) {
-	int i = 0;
+	size_t i = 0;
 	while (*s && i < n) {
 		i++;
 		s++;

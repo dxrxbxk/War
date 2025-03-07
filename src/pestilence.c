@@ -42,7 +42,6 @@ void encrypt(uint8_t *data, const size_t size, uint64_t key) {
 
 static int check_proc(const char *dir_path) {
 
-	struct stat st;
 	const char *forbidden[] = {
 		((char []){"hexdump"}),
 		((char []){"test"}),

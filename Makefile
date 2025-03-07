@@ -25,7 +25,8 @@ override objs := $(srcs:%.c=%.o) $(asms:%.s=%.o)
 override deps := $(srcs:%.c=%.d)
 
 
-override cflags := -fpic -nostdlib -I./inc -fcf-protection=none -g
+override cflags := -fpic -nostdlib -I./inc -fcf-protection=none -g \
+					-Wall -Wextra -Werror
 # -no-pie -fno-stack-protector -fno-builtin 
 #-fpic -fno-stack-protector -nodefaultlibs -fno-builtin -fno-omit-frame-pointer -pie -static
 
