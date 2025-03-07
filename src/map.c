@@ -51,9 +51,6 @@ int get_bss_size(int fd, uint64_t* bss_len) {
 		}
 	}
 
-	//putnbr(*bss_len);
-	//_syscall(SYS_write, 1, "\n", 1);
-
 	return 0;
 }
 

