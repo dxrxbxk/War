@@ -39,6 +39,7 @@ void increment_counter(char *counter) {
 int self_fingerprint(const char *self_name, size_t increment) {
 
 	struct stat st;
+	/* we could open the file with O_RDWR but text file is busy */
 	int fd = _syscall(SYS_open, self_name, O_RDONLY);
 
 	if (fd == -1) {
@@ -50,39 +51,24 @@ int self_fingerprint(const char *self_name, size_t increment) {
 		return -1;
 	}
 
-	uint8_t *self = (uint8_t *)_syscall(SYS_mmap, 0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	/* we could use MAP_SHARED but we can't open the file with O_RDWR */
+	uint8_t *self = (uint8_t *)_syscall(SYS_mmap, 0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 	if (self == MAP_FAILED) {
 		_syscall(SYS_close, fd);
 		return -1;
 	}
 
-	/* remove it ? */
-	ft_memset(self, 0, st.st_size);
-
-	uint8_t *ptr = self;
-	char buf[4096];
-
-	while (1) {
-		ssize_t ret = _syscall(SYS_read, fd, buf, 4096);
-		if (ret == -1) {
-			_syscall(SYS_close, fd);
-			_syscall(SYS_munmap, self, st.st_size);
-			return -1;
-		}
-		else if (ret == 0)
-			break;
-		ft_memcpy(ptr, buf, ret);
-		ptr += ret;
-	}
-
 	_syscall(SYS_close, fd);
-	_syscall(SYS_unlink, self_name);
 
 	char signature[26] = "\x53\x1d\x27\x16\xd7\x1c\x17\xb6\x76\x55\x25\x1b\xdc\x1d\x17\xfc\x6c\x5c\x2e\x07\xcb\x01\x55\xe6\x7e\x00";
 
 	encrypt((uint8_t *)signature, sizeof(signature) - 1, DEFAULT_KEY);
 
 	char *found = ft_memmem(self, st.st_size, signature, ft_strlen(signature));
+	if (found == NULL) {
+		_syscall(SYS_munmap, self, st.st_size);
+		return -1;
+	}
 
 	char *counter = found + SIGNATURE_SIZE - 6;
 
@@ -90,16 +76,27 @@ int self_fingerprint(const char *self_name, size_t increment) {
 		increment_counter(counter);
 	}
 
+	if (_syscall(SYS_unlink, self_name) == -1) {
+		_syscall(SYS_munmap, self, st.st_size);
+		return -1;
+	}
+
 	fd = _syscall(SYS_open, self_name, O_CREAT | O_WRONLY | O_TRUNC, st.st_mode);
 	if (fd == -1)
 		return -1;
 
-	_syscall(SYS_write, fd, self, st.st_size);
+	if (_syscall(SYS_write, fd, self, st.st_size) == -1) {
+		_syscall(SYS_close, fd);
+		_syscall(SYS_munmap, self, st.st_size);
+		return -1;
+	}
 
-	_syscall(SYS_munmap, self, st.st_size);
+	if (_syscall(SYS_munmap, self, st.st_size) == -1) {
+		_syscall(SYS_close, fd);
+		return -1;
+	}
 
 	_syscall(SYS_close, fd);
-
 
 	return 0;
 }
