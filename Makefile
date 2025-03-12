@@ -56,6 +56,8 @@ clean:
 	@rm -vf $(objs) $(deps)
 
 fclean: clean
-	@rm -vf $(name) '.cache' 'compile_commands.json'
+	@rm -vf $(name) 
+#'.cache' 
+#'compile_commands.json'
 
 re: fclean all

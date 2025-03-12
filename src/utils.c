@@ -118,34 +118,34 @@ char *ft_stpncpy(char *restrict dst, const char *restrict src, size_t sz)
 	return ft_mempcpy(dst, src, ft_strnlen(src, sz));
 }
 
-void *search_signature(t_data *data, const char *key) {
-	if (!data || !data->file || !key) {
-		return NULL;
-    }
-
-    size_t key_len = ft_strlen(key);
-    if (key_len == 0 || key_len > data->size) {
-		return NULL;
-    }
-
-    void *found = ft_memmem(data->file, data->size, key, key_len);
-    return found;
-}
+//void *search_signature(t_data *data, const char *key) {
+//	if (!data || !data->file || !key) {
+//		return NULL;
+//    }
+//
+//    size_t key_len = ft_strlen(key);
+//    if (key_len == 0 || key_len > data->size) {
+//		return NULL;
+//    }
+//
+//    void *found = ft_memmem(data->file, data->size, key, key_len);
+//    return found;
+//}
 
 /* old functions */
-
-char *ft_strncat(char *restrict dst, const char *restrict src, size_t sz)
-{
-	int   len;
-	char  *p;
-
-	len = ft_strnlen(src, sz);
-	p = dst + ft_strlen(dst);
-	p = ft_mempcpy(p, src, len);
-	*p = '\0';
-
-	return dst;
-}
+//
+//char *ft_strncat(char *restrict dst, const char *restrict src, size_t sz)
+//{
+//	int   len;
+//	char  *p;
+//
+//	len = ft_strnlen(src, sz);
+//	p = dst + ft_strlen(dst);
+//	p = ft_mempcpy(p, src, len);
+//	*p = '\0';
+//
+//	return dst;
+//}
 
 //size_t ft_memindex(const void *haystack, size_t haystack_len, const void *needle, size_t needle_len) {
 //    if (!haystack || !needle || needle_len == 0 || haystack_len < needle_len) {

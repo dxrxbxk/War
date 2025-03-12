@@ -6,6 +6,9 @@
 # include <stdbool.h>
 # include <limits.h>
 
+#define MAGIC_NUMBER 0x15D2F
+
+
 typedef struct s_elf {
 	Elf64_Ehdr	*ehdr;
 	Elf64_Shdr	*shdr;

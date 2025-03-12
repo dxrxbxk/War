@@ -18,6 +18,8 @@ int	bss(t_data *data, size_t payload_size) {
 
 	data->cave.old_entry = ehdr->e_entry;
 
+    *(uint32_t *)&ehdr->e_ident[EI_PAD] = MAGIC_NUMBER;
+
 	size_t bss_len = 0;
 
 	for (size_t i = ehdr->e_phnum; i--;) {
