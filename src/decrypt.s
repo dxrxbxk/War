@@ -63,7 +63,7 @@ jmp_rel:
 	jmp end
 
 sign:
-	db "Famine (c)oded by dxrxbxk & elie - straboul:0000", 0x0a, 0
+	db "Pestilence (c)oded by [diroyer] & [eamar] - straboul:0000", 0x0a, 0
 
 data_page_size:
 	dq 0x0

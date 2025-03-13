@@ -36,6 +36,7 @@ override sflags := -f elf64
 
 override ldflags := -nostdlib -z noexecstack
 #-pie -static
+def :=
 
 
 .PHONY: all clean fclean re
@@ -47,7 +48,7 @@ $(name): $(objs)
 
 -include $(deps)
 src/%.o: src/%.c Makefile
-	gcc $(cflags) $(depflags) -c $< -o $@ 
+	gcc $(cflags) $(depflags) -c $< -o $@ $(def)
 
 src/%.o: src/%.s Makefile
 	nasm $(sflags) -o $@ $<
