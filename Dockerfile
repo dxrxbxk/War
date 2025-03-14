@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     tmux \
     nasm \
     wget \
+	procps \
     && apt-get clean
 
 # Create working directory

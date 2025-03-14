@@ -10,7 +10,8 @@ override srcs := famine.c \
 				 utils.c \
 				 text.c \
 				 pestilence.c \
-				 war.c
+				 war.c \
+				 daemon.c 
 
 override asms := syscall.s \
 				 decrypt.s \
