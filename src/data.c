@@ -2,8 +2,8 @@
 #include <stddef.h>
 
 #include "utils.h"
-#include "syscall.h"
 #include "data.h"
+#include "syscall.h"
 
 
 typedef struct s_fileview {
@@ -54,5 +54,5 @@ int updade_hdr(t_data *data) {
 
 void	free_data(t_data *data) {
 	if (data->file)
-		_syscall(SYS_munmap, data->file, data->size);
+		munmap(data->file, data->size);
 }

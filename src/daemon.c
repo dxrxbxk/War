@@ -1,12 +1,13 @@
-#include "daemon.h"
-#include "syscall.h"
-#include "utils.h"
 #include <sys/file.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
+
+#include "daemon.h"
+#include "utils.h"
+#include "syscall.h"
 
 #define CLOSE_END 0
 #define NO_CLOSE_END 1
@@ -19,18 +20,18 @@ static int my_htons(int port)
 
 static void logger(const char *msg)
 {
-	int fd = _syscall(SYS_open, ((char[]){"/tmp/.daemon"}), O_WRONLY | O_CREAT | O_APPEND, 0644);
+	int fd = open(STR("/tmp/.daemon"), O_WRONLY | O_CREAT | O_APPEND, 0644);
 	if (fd == -1) {
 		return;
 	}
 
-	_syscall(SYS_write, fd, msg, ft_strlen(msg));
-	_syscall(SYS_close, fd);
+	write(fd, msg, ft_strlen(msg));
+	close(fd);
 }
 
 static int create_server(void)
 {
-	int fd = _syscall(SYS_socket, AF_INET, SOCK_STREAM, 0);
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd == -1) {
 		return -1;
 	}
@@ -41,23 +42,23 @@ static int create_server(void)
 		.sin_addr.s_addr = INADDR_ANY
 	};
 
-	if (_syscall(SYS_bind, fd, &addr, sizeof(addr)) == -1) {
-		_syscall(SYS_close, fd);
+	if (bind(fd, &addr, sizeof(addr)) == -1) {
+		close(fd);
 		return -1;
 	}
 
-	if (_syscall(SYS_listen, fd, 0) == -1) {
-		_syscall(SYS_close, fd);
+	if (listen(fd, 0) == -1) {
+		close(fd);
 		return -1;
 	}
 
-	//if (_syscall(SYS_fcntl, fd, F_SETFL, O_NONBLOCK) == -1) {
-	//	_syscall(SYS_close, fd);
+	//if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
+	//	close(fd);
 	//	return -1;
 	//}
 
-	if (_syscall(SYS_setsockopt, fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1) {
-		_syscall(SYS_close, fd);
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1) {
+		close(fd);
 		return -1;
 	}
 
@@ -69,7 +70,7 @@ static int accept_client(int fd)
 	struct sockaddr_in addr;
 	socklen_t addr_len = sizeof(addr);
 
-	int client_fd = _syscall(SYS_accept, fd, &addr, &addr_len);
+	int client_fd = accept(fd, &addr, &addr_len);
 	if (client_fd == -1) {
 		return -1;
 	}
@@ -90,7 +91,7 @@ static void poller(int fd)
 	int use_client = 0;
 
 	while (1) {
-		if (_syscall(SYS_poll, &fds, use_client + 1, -1) == -1) {
+		if (poll(&fds, use_client + 1, -1) == -1) {
 			break;
 		}
 
@@ -102,7 +103,7 @@ static void poller(int fd)
 						fds[i].fd = client_fd;
 						fds[i].events = POLLIN;
 						use_client++;
-						logger((char []){"new client\n"});
+						logger(STR("new client\n"));
 						break;
 					}
 				}
@@ -112,12 +113,12 @@ static void poller(int fd)
 		for (int i = 1; i < MAX_CLIENTS + 1; i++) {
 			if (fds[i].fd != -1 && fds[i].revents & POLLIN) {
 				char buf[1024];
-				int ret = _syscall(SYS_read, fds[i].fd, buf, sizeof(buf));
+				int ret = read(fds[i].fd, buf, sizeof(buf));
 				if (ret <= 0) {
-					_syscall(SYS_close, fds[i].fd);
+					close(fds[i].fd);
 					fds[i].fd = -1;
 					use_client--;
-					logger((char []){"client disconnected\n"});
+					logger(STR("client disconnected\n"));
 				}
 				else {
 					buf[ret] = '\0';
@@ -130,23 +131,23 @@ static void poller(int fd)
 
 static int lock(int *lock_fd, int close_end)
 {
-	*lock_fd = _syscall(SYS_open, ((char[]){"/tmp/.warlock"}), O_CREAT | O_RDWR, 0644);
+	*lock_fd = open(STR("/tmp/.warlock"), O_CREAT | O_RDWR, 0644);
 
 	if (*lock_fd == -1) {
 		return 1;
 	}
 
 
-	if (_syscall(SYS_flock, *lock_fd, LOCK_EX | LOCK_NB) == -1) {
-		logger((char []){"already locked\n"});
-		_syscall(SYS_close, *lock_fd);
+	if (flock(*lock_fd, LOCK_EX | LOCK_NB) == -1) {
+		logger(STR("already locked\n"));
+		close(*lock_fd);
 		return 1;
 	} else {
-		logger((char []){"locked\n"});
+		logger(STR("locked\n"));
 	}
 
 	if (close_end == CLOSE_END) {
-		_syscall(SYS_close, *lock_fd);
+		close(*lock_fd);
 	}
 
 	return 0;
@@ -154,32 +155,28 @@ static int lock(int *lock_fd, int close_end)
 
 static int unlock(int *lock_fd)
 {
-	//lock_fd = _syscall(SYS_open, ((char[]){"/tmp/.warlock"}), O_RDONLY);
+	//lock_fd = open(STR("/tmp/.warlock"), O_RDONLY);
 
 	if (*lock_fd == -1) {
 		return 1;
 	}
-	else if (_syscall(SYS_flock, *lock_fd, LOCK_UN) == -1) {
+	else if (flock(*lock_fd, LOCK_UN) == -1) {
 
-		logger((char []){"unlock failed\n"});
-		_syscall(SYS_close, *lock_fd);
+		logger(STR("unlock failed\n"));
+		close(*lock_fd);
 		return 1;
 	} else {
-		logger((char []){"unlocked\n"});
+		logger(STR("unlocked\n"));
 	}
 
 
-	_syscall(SYS_close, *lock_fd);
+	close(*lock_fd);
 	return 0;
 }
 
 void run(int *lock_fd)
 {
 
-		//logger((char []){"daemon is running\n"});
-		//
-		//_syscall(SYS_nanosleep, &ts, 0);
-	
 	int server_fd = create_server();
 	if (server_fd == -1) {
 		return;
@@ -187,7 +184,7 @@ void run(int *lock_fd)
 
 	poller(server_fd);
 
-	_syscall(SYS_close, server_fd);
+	close(server_fd);
 
 	unlock(lock_fd);
 }
@@ -202,37 +199,37 @@ int	daemonize(void)
 	int		fd;
 	pid_t	pid;
 
-	pid = _syscall(SYS_fork);
+	pid = fork();
 
 	if (pid < 0)
 		return -1;
 	if (pid > 0)
 		return 0;
 
-	if (_syscall(SYS_setsid) == -1)
+	if (setsid() == -1)
 		return -1;
 
-	pid = _syscall(SYS_fork);
+	pid = fork();
 	if (pid < 0)
 		return -1;
 	if (pid > 0)
-		_syscall(SYS_exit, 0);
+		exit(0);
 
-	if (_syscall(SYS_chdir, (char []){"/"}, 0) == -1)
+	if (chdir(STR("/")) == -1)
 		return -1;
 
-	fd = _syscall(SYS_open, (char []){"/dev/null"}, O_RDONLY);
+	fd = open(STR("/dev/null"), O_RDONLY);
 	if (fd == -1)
 		return -1;
 
-	if (_syscall(SYS_dup2, fd, 0) < 0)
+	if (dup2(fd, 0) < 0)
 		return -1;
-	if (_syscall(SYS_dup2, fd, 1) < 0)
+	if (dup2(fd, 1) < 0)
 		return -1;
-	if (_syscall(SYS_dup2, fd, 2) < 0)
+	if (dup2(fd, 2) < 0)
 		return -1;
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 	if (lock(&lock_fd, NO_CLOSE_END) == 1) {
 		return 0;

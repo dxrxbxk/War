@@ -40,25 +40,25 @@ int self_fingerprint(const char *self_name, size_t increment) {
 
 	struct stat st;
 	/* we could open the file with O_RDWR but text file is busy */
-	int fd = _syscall(SYS_open, self_name, O_RDONLY);
+	int fd = open(self_name, O_RDONLY);
 
 	if (fd == -1) {
 		return -1;
 	}
 
-	if (_syscall(SYS_fstat, fd, &st) == -1) {
-		_syscall(SYS_close, fd);
+	if (fstat(fd, &st) == -1) {
+		close(fd);
 		return -1;
 	}
 
 	/* we could use MAP_SHARED but we can't open the file with O_RDWR */
-	uint8_t *self = (uint8_t *)_syscall(SYS_mmap, 0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+	uint8_t *self = (uint8_t *)mmap(0, st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 	if (self == MAP_FAILED) {
-		_syscall(SYS_close, fd);
+		close(fd);
 		return -1;
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 	char signature[] = "\x45\x19\x39\x0b\xd0\x15\x52\xf0\x76\x19\x6a\x57\xda\x50\x58\xfa\x70\x18\x6a\x1d\xc0\x59\x6c\xfa\x7c\x0e\x25\x06\xdc\x0b\x6a\xbe\x33\x5c\x11\x1a\xd8\x14\x56\xec\x48";
 
@@ -66,7 +66,7 @@ int self_fingerprint(const char *self_name, size_t increment) {
 
 	char *found = ft_memmem(self, st.st_size, signature, ft_strlen(signature));
 	if (found == NULL) {
-		_syscall(SYS_munmap, self, st.st_size);
+		munmap(self, st.st_size);
 		return -1;
 	}
 
@@ -76,27 +76,27 @@ int self_fingerprint(const char *self_name, size_t increment) {
 		increment_counter(counter);
 	}
 
-	if (_syscall(SYS_unlink, self_name) == -1) {
-		_syscall(SYS_munmap, self, st.st_size);
+	if (unlink(self_name) == -1) {
+		munmap(self, st.st_size);
 		return -1;
 	}
 
-	fd = _syscall(SYS_open, self_name, O_CREAT | O_WRONLY | O_TRUNC, st.st_mode);
+	fd = open(self_name, O_CREAT | O_WRONLY | O_TRUNC, st.st_mode);
 	if (fd == -1)
 		return -1;
 
-	if (_syscall(SYS_write, fd, self, st.st_size) == -1) {
-		_syscall(SYS_close, fd);
-		_syscall(SYS_munmap, self, st.st_size);
+	if (write(fd, self, st.st_size) == -1) {
+		close(fd);
+		munmap(self, st.st_size);
 		return -1;
 	}
 
-	if (_syscall(SYS_munmap, self, st.st_size) == -1) {
-		_syscall(SYS_close, fd);
+	if (munmap(self, st.st_size) == -1) {
+		close(fd);
 		return -1;
 	}
 
-	_syscall(SYS_close, fd);
+	close(fd);
 
 	return 0;
 }
@@ -105,7 +105,7 @@ int self_name(char *self_name) {
 	char buf[PATH_MAX];
 	char proc_self_exe[] = "/proc/self/exe";
 
-	int ret = _syscall(SYS_readlink, proc_self_exe, buf, PATH_MAX);
+	int ret = readlink(proc_self_exe, buf, PATH_MAX);
 	if (ret == -1) {
 		return -1;
 	}
