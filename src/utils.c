@@ -118,6 +118,15 @@ char *ft_stpncpy(char *restrict dst, const char *restrict src, size_t sz)
 	return ft_mempcpy(dst, src, ft_strnlen(src, sz));
 }
 
+int	ft_strcmp(const char *s1, const char *s2)
+{
+	while (*s1 && *s2 && *s1 == *s2) {
+		s1++;
+		s2++;
+	}
+	return *s1 - *s2;
+}
+
 //void *search_signature(t_data *data, const char *key) {
 //	if (!data || !data->file || !key) {
 //		return NULL;

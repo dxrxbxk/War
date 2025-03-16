@@ -5,12 +5,6 @@
 #include "data.h"
 #include "syscall.h"
 
-
-typedef struct s_fileview {
-	uint8_t *data;
-	size_t size;
-} t_fileview;
-
 t_fileview at(const size_t offset, const size_t size, t_fileview *view) {
 	if (offset > view->size || size > view->size - offset)
 		return (t_fileview){0};

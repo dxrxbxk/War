@@ -11,11 +11,11 @@ override srcs := famine.c \
 				 text.c \
 				 pestilence.c \
 				 war.c \
-				 daemon.c 
+				 daemon.c \
+				 syscall.c 
 
-override asms := syscall.s \
-				 decrypt.s \
-				 end.s
+override asms :=  decrypt.s \
+				  end.s
 
 # add prefix to srcs
 override srcs := $(addprefix $(src_dir)/, $(srcs))

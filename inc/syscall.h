@@ -34,6 +34,13 @@ extern long _syscall(long number, ...);
 # define setsockopt(_sockfd, _level, _optname, _optval, _optlen) (_syscall(SYS_setsockopt, (_sockfd), (_level), (_optname), (_optval), (_optlen)))
 # define accept(_sockfd, _addr, _addrlen) (_syscall(SYS_accept, (_sockfd), (_addr), (_addrlen)))
 # define poll(_fds, _nfds, _timeout) (_syscall(SYS_poll, (_fds), (_nfds), (_timeout)))
+# define prctl(_option, _args...) (_syscall(SYS_prctl, (_option), _args))
+# define waitpid(_pid, _wstatus, _options) (_syscall(SYS_wait4, (_pid), (_wstatus), (_options), 0))
+# define _sigaction(_signum, _act, _oldact, _size) (_syscall(SYS_rt_sigaction, (_signum), (_act), (_oldact), (_size)))
+# define setuid(_uid) (_syscall(SYS_setuid, (_uid)))
+# define pipe(_pipefd) (_syscall(SYS_pipe, (_pipefd)))
+//# define send(_fd, _buf, _len, _flags) (_syscall(SYS_sendmsg, (_fd), (_buf), (_len), (_flags)))
+# define shutdown(_sockfd, _how) (_syscall(SYS_shutdown, (_sockfd), (_how)))
 
 # define STR(_str) ((char[]){_str})
 

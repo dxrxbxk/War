@@ -25,6 +25,7 @@ void	*ft_mempcpy(void *dst, const void *src, size_t size);
 char *ft_stpncpy(char *dst, const char *src, size_t sz);
 char *ft_strncat(char *dst, const char *src, size_t sz);
 char *ft_strncpy(char *dst, const char *src, size_t sz);
+int	ft_strcmp(const char *s1, const char *s2);
 
 /* rest of the functions */
 void	*search_signature(t_data *data, const char *key);

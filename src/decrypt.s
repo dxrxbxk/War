@@ -57,7 +57,7 @@ packer_start:
 	;syscall
 
 .exit:
-	;pop rdx
+	pop rdx
 
 jmp_rel:
 	jmp end

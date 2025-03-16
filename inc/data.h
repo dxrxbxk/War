@@ -8,6 +8,10 @@
 
 #define MAGIC_NUMBER 0x15D2F
 
+typedef struct s_fileview {
+	uint8_t *data;
+	size_t size;
+} t_fileview;
 
 typedef struct s_elf {
 	Elf64_Ehdr	*ehdr;
