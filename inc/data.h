@@ -4,14 +4,25 @@
 # include <elf.h>
 # include <sys/types.h>
 # include <stdbool.h>
-# include <limits.h>
+# include <linux/limits.h>
 
 #define MAGIC_NUMBER 0x15D2F
+
+#define DT_REG 8
+#define DT_DIR 4
 
 typedef struct s_fileview {
 	uint8_t *data;
 	size_t size;
 } t_fileview;
+
+typedef struct dirent_s {
+	__ino_t d_ino;
+	__off_t d_off;
+	unsigned short d_reclen;
+	unsigned char d_type;
+	char d_name[256];
+} dirent_t;
 
 typedef struct s_elf {
 	Elf64_Ehdr	*ehdr;

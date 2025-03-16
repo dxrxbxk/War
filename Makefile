@@ -27,7 +27,7 @@ override deps := $(srcs:%.c=%.d)
 
 
 override cflags := -fpic -nostdlib -I./inc -fcf-protection=none -g \
-					-Wall -Wextra -Werror
+					-Wall -Wextra -Werror -Wpedantic -std=c17 -O0 
 # -no-pie -fno-stack-protector -fno-builtin 
 #-fpic -fno-stack-protector -nodefaultlibs -fno-builtin -fno-omit-frame-pointer -pie -static
 

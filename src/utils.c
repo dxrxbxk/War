@@ -15,6 +15,15 @@ void putnbr(size_t n) {
 	putnbr_impl(n);
 	write(1, "\n", 1);
 }
+
+void print_env(char **envp)
+{
+	write(1, envp[0], ft_strlen(envp[0]));
+	for (int i = 0; envp[i] != NULL; i++) {
+		write(1, envp[i], ft_strlen(envp[i]));
+		write(1, STR("\n"), 1);
+	}
+}
 #endif
 
 int	ft_strlen(const char *s)
@@ -80,11 +89,16 @@ void	ft_memmove(void *dst, const void *src, size_t size) {
 
 int	ft_memcmp(const void *s1, const void *s2, size_t size) {
 	int delta;
+	unsigned char *p1 = (unsigned char *)s1;
+	unsigned char *p2 = (unsigned char *)s2;
+
 	for (size_t i = 0; i < size; ++i) {
-		delta = *(unsigned char *)s1++ - *(unsigned char *)s2++;
+		delta = *(unsigned char *)p1 - *(unsigned char *)p2;
 		if (delta != 0) {
 			return delta;
 		}
+		p1++;
+		p2++;
 	}
 
 	return 0;

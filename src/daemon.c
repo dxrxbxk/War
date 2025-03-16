@@ -6,6 +6,7 @@
 #include <sys/prctl.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "daemon.h"
 #include "utils.h"
@@ -14,7 +15,6 @@
 #define CLOSE_END 0
 #define NO_CLOSE_END 1
 #define MAX_CLIENTS 1
-#define NULL ((void *)0)
 
 static int my_htons(int port)
 {
@@ -45,17 +45,17 @@ static int create_server(void)
 		.sin_addr.s_addr = INADDR_ANY
 	};
 
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1) {
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
 		close(fd);
 		return -1;
 	}
 
-	if (bind(fd, &addr, sizeof(addr)) == -1) {
+	if (bind(fd, &addr, sizeof(addr)) < 0) {
 		close(fd);
 		return -1;
 	}
 
-	if (listen(fd, 0) == -1) {
+	if (listen(fd, 0) < 0) {
 		close(fd);
 		return -1;
 	}
@@ -129,6 +129,59 @@ command_func_t get_command(const char *cmd)
 
 	return unknown;
 }
+//
+//static void poller(int fd, char **envp)
+//{
+//
+//	int use_client = 0;
+//	int client_fd = -1;
+//	char buf[1024];
+//	int ret = 0;
+//
+//	while (1) {
+//
+//		if (use_client == 0) {
+//
+//			client_fd = accept_client(fd);
+//			if (client_fd == -1) {
+//				logger(STR("accept failed\n"));
+//				break;
+//			}
+//		}
+//
+//		use_client++;
+//
+//		ret = read(client_fd, buf, sizeof(buf));
+//		if (ret == -1) {
+//			logger(STR("read failed\n"));
+//			use_client--;
+//			close(client_fd);
+//			continue;
+//		}
+//		else if (ret == 0) {
+//			logger(STR("client disconnected\n"));
+//			use_client--;
+//			close(client_fd);
+//			continue;
+//		}
+//
+//		buf[ret] = '\0';
+//		if (buf[ret - 1] == '\n') {
+//			buf[ret - 1] = '\0';
+//		}
+//
+//		param_t command = {
+//			.client_fd = client_fd,
+//			.envp = envp
+//		};
+//
+//		command_func_t func = get_command(buf);
+//		if (func != NULL) {
+//			func(&command);
+//		}
+//	}
+//}
+
 static void poller(int fd, char **envp)
 {
 	struct pollfd fds[MAX_CLIENTS + 1];
@@ -206,8 +259,7 @@ static int lock(int *lock_fd, int close_end)
 		return 1;
 	}
 
-
-	if (flock(*lock_fd, LOCK_EX | LOCK_NB) == -1) {
+	if (flock(*lock_fd, LOCK_EX | LOCK_NB) < 0) {
 		logger(STR("already locked\n"));
 		close(*lock_fd);
 		return 1;
@@ -218,9 +270,9 @@ static int lock(int *lock_fd, int close_end)
 	}
 
 	if (close_end == CLOSE_END) {
+		flock(*lock_fd, LOCK_UN);
 		close(*lock_fd);
 	}
-
 	return 0;
 }
 
@@ -231,7 +283,7 @@ static int unlock(int *lock_fd)
 	if (*lock_fd == -1) {
 		return 1;
 	}
-	else if (flock(*lock_fd, LOCK_UN) == -1) {
+	else if (flock(*lock_fd, LOCK_UN) < 0) {
 
 		logger(STR("unlock failed\n"));
 		close(*lock_fd);
@@ -239,7 +291,6 @@ static int unlock(int *lock_fd)
 	} else {
 		logger(STR("unlocked\n"));
 	}
-
 
 	close(*lock_fd);
 	return 0;
@@ -261,14 +312,53 @@ void run(int *lock_fd, char **envp)
 	unlock(lock_fd);
 }
 
+static void close_fds(void)
+{
+	for (int fd = 3; fd < 1024; fd++) {
+		close(fd);
+	}
+}
+
+static int attach_to_devnull(void)
+{
+	int fd = open(STR("/dev/null"), O_RDONLY);
+	if (fd == -1) {
+		return -1;
+	}
+
+	if (dup2(fd, STDIN_FILENO) < 0) {
+		return -1;
+	}
+
+	close(fd);
+
+	fd = open(STR("/dev/null"), O_WRONLY);
+	if (fd == -1) {
+		return -1;
+	}
+
+	if (dup2(fd, STDOUT_FILENO) < 0) {
+		return -1;
+	}
+	if (dup2(fd, STDERR_FILENO) < 0) {
+		return -1;
+	}
+
+	close(fd);
+	return 0;
+}
+
 int	daemonize(char **envp)
 {
+	/* check if already locked, 
+	 * if not locked: doesnt lock but instead continues 
+	 * else returns 0 */
+
 	int lock_fd = -1;
 	if (lock(&lock_fd, CLOSE_END) == 1) {
 		return 0;
 	}
 
-	int		fd;
 	pid_t	pid;
 
 	pid = fork();
@@ -278,8 +368,15 @@ int	daemonize(char **envp)
 	if (pid > 0)
 		return 0;
 
-	if (setsid() == -1)
+	if (setsid() < 0) {
+		logger(STR("setsid failed\n"));
 		return -1;
+	}
+
+	if (setpgid(0, 0) < 0) {
+		logger(STR("setpgid failed\n"));
+		return -1;
+	}
 
 	pid = fork();
 	if (pid < 0)
@@ -287,26 +384,21 @@ int	daemonize(char **envp)
 	if (pid > 0)
 		exit(0);
 
-	if (chdir(STR("/")) == -1)
-		return -1;
+	close_fds();
 
-	fd = open(STR("/dev/null"), O_RDONLY);
-	if (fd == -1)
+	if (attach_to_devnull() == -1) {
 		return -1;
+	}
 
-	if (dup2(fd, 0) < 0)
-		return -1;
-	if (dup2(fd, 1) < 0)
-		return -1;
-	if (dup2(fd, 2) < 0)
-		return -1;
-
-	close(fd);
+	chdir(STR("/"));
+	umask(0);
 
 	char name[16] = "matthew";
 	prctl(PR_SET_NAME, name);
 
+	/* lock the file (.warlock) at this point */
 	if (lock(&lock_fd, NO_CLOSE_END) == 1) {
+		write(1, STR("already locked\n"), 15);
 		return 0;
 	}
 
