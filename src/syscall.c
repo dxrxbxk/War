@@ -29,5 +29,9 @@ extern inline long _syscall(long syscall_number, ...) {
 			: "rax", "rdi", "rsi", "rdx", "r10", "r8", "r9", "memory"
 		);
 
+	if (result < 0) {
+		return -1;
+	}
+
     return result;
 }

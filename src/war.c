@@ -20,7 +20,7 @@ void hash_to_printable(uint64_t hash, char *fingerprint) {
 }
 
 void update_fingerprint(char *fingerprint, t_data *data) {
-	uint64_t hash = fnv1a_64(data->self_name, ft_strlen(data->self_name));
+	uint64_t hash = fnv1a_64(data->bs_data->argv[0], ft_strlen(data->bs_data->argv[0]));
 	hash ^= fnv1a_64(data->target_name, ft_strlen(data->target_name));
 	hash_to_printable(hash, fingerprint);
 }

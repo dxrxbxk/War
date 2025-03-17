@@ -11,6 +11,12 @@
 #define DT_REG 8
 #define DT_DIR 4
 
+typedef struct bootstrap_data_s {
+	int argc;
+	char **argv;
+	char **envp;
+} bootstrap_data_t;
+
 typedef struct s_fileview {
 	uint8_t *data;
 	size_t size;
@@ -83,8 +89,9 @@ typedef struct s_data {
 
 	//int64_t		key;
 	//char		*signature;
-	char		target_name[PATH_MAX];
-	char		self_name[PATH_MAX];
+	char	target_name[PATH_MAX];
+
+	bootstrap_data_t	*bs_data;
 } t_data;
 
 void	free_data(t_data *data);
