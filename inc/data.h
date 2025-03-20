@@ -47,15 +47,6 @@ typedef struct s_cave {
 	int32_t		rel_jmp;
 } t_cave;
 
-typedef struct s_packer {
-	Elf64_Addr	addr;
-	Elf64_Addr	offset;
-	size_t		p_size;
-
-	Elf64_Addr	old_entry;
-	int32_t		rel_jmp;
-} t_packer;
-
 #define SIGNATURE_SIZE 52
 #define PAYLOAD 0x0
 #define PACKER 0x1
@@ -81,7 +72,7 @@ typedef struct s_data {
 
 	t_elf		elf;
 	t_cave		cave;
-	t_packer	packer;
+	t_cave		packer;
 	t_patch		patch;
 
 	//int64_t		key;

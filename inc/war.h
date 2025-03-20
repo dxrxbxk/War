@@ -15,9 +15,9 @@
 # include "syscall.h"
 
 //int self_name(t_data *data);
-int self_name(char *self_name);
+//int self_name(char *self_name);
 //int self_fingerprint(t_data *data);
-int self_fingerprint(const char *self_name, size_t increment);
+int war(size_t increment);
 void update_fingerprint(char *fingerprint, t_data *data);
 
 #endif

