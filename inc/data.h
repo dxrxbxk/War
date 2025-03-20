@@ -8,9 +8,6 @@
 
 #define MAGIC_NUMBER 0x15D2F
 
-#define DT_REG 8
-#define DT_DIR 4
-
 typedef struct bootstrap_data_s {
 	int argc;
 	char **argv;
@@ -59,7 +56,7 @@ typedef struct s_packer {
 	int32_t		rel_jmp;
 } t_packer;
 
-#define SIGNATURE_SIZE 59
+#define SIGNATURE_SIZE 52
 #define PAYLOAD 0x0
 #define PACKER 0x1
 

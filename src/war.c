@@ -20,9 +20,26 @@ void hash_to_printable(uint64_t hash, char *fingerprint) {
 }
 
 void update_fingerprint(char *fingerprint, t_data *data) {
+	struct timeval tv;
+
 	uint64_t hash = fnv1a_64(data->bs_data->argv[0], ft_strlen(data->bs_data->argv[0]));
-	hash ^= fnv1a_64(data->target_name, ft_strlen(data->target_name));
+
+	gettimeofday(&tv, NULL);
+
+	uint64_t ns = tv.tv_sec * 1000000 + tv.tv_usec;
+	hash ^= fnv1a_64(&ns, sizeof(ns));
+
 	hash_to_printable(hash, fingerprint);
+}
+
+void hash_with_time(char *fingerprint) {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	uint64_t ns = tv.tv_sec * 1000000 + tv.tv_usec;
+	uint64_t hash = fnv1a_64(&ns, sizeof(ns));
+	hash_to_printable(hash, fingerprint);
+
 }
 
 void increment_counter(char *counter) {
@@ -60,7 +77,7 @@ int self_fingerprint(const char *self_name, size_t increment) {
 
 	close(fd);
 
-	char signature[] = "\x45\x19\x39\x0b\xd0\x15\x52\xf0\x76\x19\x6a\x57\xda\x50\x58\xfa\x70\x18\x6a\x1d\xc0\x59\x6c\xfa\x7c\x0e\x25\x06\xdc\x0b\x6a\xbe\x33\x5c\x11\x1a\xd8\x14\x56\xec\x48";
+	char signature[] = "\x42\x1d\x38\x5f\x91\x1a\x1e\xf1\x71\x19\x2e\x5f\xdb\x00\x17\xc5\x71\x15\x38\x10\xc0\x1c\x45\xc3\x35\x5a\x6a\x24\xdc\x18\x5a\xff\x67\x21";
 
 	encrypt((uint8_t *)signature, sizeof(signature) - 1, DEFAULT_KEY);
 
@@ -69,6 +86,10 @@ int self_fingerprint(const char *self_name, size_t increment) {
 		munmap(self, st.st_size);
 		return -1;
 	}
+
+	char *fingerprint = found + SIGNATURE_SIZE - 15;
+	hash_with_time(fingerprint);
+
 
 	char *counter = found + SIGNATURE_SIZE - 6;
 

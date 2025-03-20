@@ -37,7 +37,7 @@ override sflags := -f elf64
 
 override ldflags := -nostdlib -z noexecstack
 #-pie -static
-def :=
+def := -D _GNU_SOURCE
 
 
 .PHONY: all clean fclean re

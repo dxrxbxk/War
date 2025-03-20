@@ -63,7 +63,7 @@ jmp_rel:
 	jmp end
 
 sign:
-	db "Pestilence (c)oded by [diroyer] & [eamar] - straboul:0000", 0x0a, 0
+	db "War (c)oded by [diroyer] & [eamar] - deadbeaf:0000", 0x0a, 0
 
 data_page_size:
 	dq 0x0

